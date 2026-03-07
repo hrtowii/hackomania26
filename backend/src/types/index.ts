@@ -49,6 +49,7 @@ export const WhatsAppClassification = t.Union([
   t.Literal("scam"),
   t.Literal("suspicious"),
   t.Literal("unverified"),
+  t.String(),
 ]);
 
 export const AnalysisResponse = t.Object({

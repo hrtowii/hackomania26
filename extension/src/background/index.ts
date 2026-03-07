@@ -8,8 +8,6 @@
  * 4. Open the TruthLens side panel on the current tab
  */
 
-import type { AnalyzeSelectionMessage } from "../content/index";
-
 // ─── Storage key ─────────────────────────────────────────────────────────────
 
 export const STORAGE_KEY = "truthlens_pending_analysis" as const;
@@ -60,15 +58,10 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   enqueuePendingAnalysis(tabId, text, tab?.url ?? info.pageUrl ?? "");
 });
 
-// ─── Message handler (floating button in content script) ──────────────────────
-
-chrome.runtime.onMessage.addListener(
-  (message: AnalyzeSelectionMessage, sender, _sendResponse) => {
-    if (message.type !== "ANALYZE_SELECTION") return;
-
+chrome.runtime.onMessage.addListener((msg, sender) => {
+  if (msg.type === "ANALYZE_SELECTION") {
     const tabId = sender.tab?.id;
     if (tabId == null) return;
-
-    enqueuePendingAnalysis(tabId, message.text, message.sourceUrl);
+    enqueuePendingAnalysis(tabId, msg.text, msg.sourceUrl);
   }
-);
+})

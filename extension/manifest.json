@@ -24,9 +24,11 @@
   },
   "permissions": [
     "activeTab",
-    "storage",
+    "storage", 
     "sidePanel",
-    "contextMenus"
+    "contextMenus",
+    "tabs",
+    "microphone"
   ],
   "host_permissions": [
     "<all_urls>"
