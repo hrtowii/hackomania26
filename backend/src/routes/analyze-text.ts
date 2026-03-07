@@ -3,8 +3,7 @@ import { AnalyzeTextBody, AnalysisAiOutputSchema, AnalysisResponse } from "../ty
 import type { TAnalysisAiOutput, TAnalysisResponse } from "../types";
 import { callAiWithSearch } from "../../functions/call-ai";
 import { embedText } from "../../functions/embeddings";
-import {randomUUID} from "crypto"
- import { postMessageCheck } from "../../functions/postMessageCheck";
+import { postMessageCheck } from "../../functions/postMessageCheck";
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "crypto";
 
@@ -40,8 +39,7 @@ export const analyzeTextRoute = new Elysia().post(
   async ({ body }) => {
     const LangChosen = LANGUAGE_NAMES[body.preferred_language ?? "en"] ?? "English";
 
-    console.log("[1/4] Request received:", {
-    console.log("[1/4] Request received:", {
+    console.log("[1/5] Request received:", {
       textLength: body.text.length,
       language: LangChosen,
       source: body.source_url || "none",
@@ -55,6 +53,7 @@ export const analyzeTextRoute = new Elysia().post(
       `${body.source_url ? `Source URL: ${body.source_url}\n` : ""}` +
       `${body.preferred_language ? `Respond in language: ${body.preferred_language}\n` : ""}` +
       `Text:\n\n${body.text}`;
+
     console.log("🔍 [2/5] Comparing with scams in the database...");
     function normalizeText(input: string): string {
       return input.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
@@ -106,22 +105,22 @@ export const analyzeTextRoute = new Elysia().post(
     console.log("🔍 [3/5] Calling AI with web search...");
     const start = Date.now();
 
-    const raw = await callAiWithSearch(prompt, {
-      systemPrompt: SYSTEM_PROMPT,
-      responseFormat: {
-        type: "json_schema",
-        json_schema: {
-          name: "analysis",
-          strict: true,
-          schema: JSON.parse(JSON.stringify(AnalysisAiOutputSchema)),
-        },
-      },
-    });
+    const { text: raw, searchResults } = await callAiWithSearch(prompt, {
+          systemPrompt: SYSTEM_PROMPT,
+          responseFormat: {
+            type: "json_schema",
+            json_schema: {
+              name: "analysis",
+              strict: true,
+              schema: JSON.parse(JSON.stringify(AnalysisAiOutputSchema)),
+            },
+          },
+        });
 
     console.log(`✅ [4/5] AI responded in ${((Date.now() - start) / 1000).toFixed(1)}s`);
-    console.log("📄 Raw length:", raw?.length ?? 0);
+/*     console.log("📄 Raw length:", raw?.length ?? 0);
     console.log("📄 Raw preview:", raw?.slice(0, 200));
-    console.log("🔗 Exa results:", searchResults.length);
+    console.log("🔗 Exa results:", searchResults.length); */
 
     if (!raw || raw.trim() === "") {
       throw new Error("AI returned empty response");
