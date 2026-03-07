@@ -16,9 +16,9 @@ export async function exaSearch(
     numResults,
     text: true,
   });
-  res.results.map((r) => {
-    console.log(r.title, r.url, r.text)
-  })
+  // res.results.map((r) => {
+  //   console.log(r.title, r.url, r.text)
+  // })
   return res.results.map((r) => ({
     title: r.title ?? "",
     url: r.url,
