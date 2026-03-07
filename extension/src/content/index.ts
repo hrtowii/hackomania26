@@ -406,7 +406,7 @@ async function handleDocumentSubmit(e: SubmitEvent): Promise<void> {
   const result = await fetchScamAnalysis(targetUrl);
   form.style.opacity = "";
 
-  if (!result || result.safetyScore <== 70) {
+  if (!result || result.safetyScore <= 70) {
     scamCheckInProgress = true;
     form.submit();
     scamCheckInProgress = false;
