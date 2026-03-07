@@ -4,7 +4,6 @@
   "version": "0.1.0",
   "manifest_version": 3,
   "action": {
-    "default_popup": "index.html",
     "default_icon": {
       "128": "truthlens.png"
     }
@@ -26,7 +25,8 @@
   "permissions": [
     "activeTab",
     "storage",
-    "sidePanel"
+    "sidePanel",
+    "contextMenus"
   ],
   "host_permissions": [
     "<all_urls>"
