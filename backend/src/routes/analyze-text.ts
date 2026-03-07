@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { AnalyzeTextBody, AnalysisResponse, CrossReference } from "../types";
+import { AnalyzeTextBody, AnalysisResponse, CrossReference, WhatsAppClassification } from "../types";
 import type { TAnalysisResponse } from "../types";
 import { t } from "elysia";
 import { randomUUID } from "crypto";
@@ -7,7 +7,8 @@ import { callAiWithSearch } from "../../functions/call-ai";
 
 const AnalysisOutputSchema = t.Object({
   credibility_score: t.Number({ minimum: 0, maximum: 100 }),
-  risk_level: t.Union([t.Literal("likely accurate"), t.Literal("unverified"), t.Literal("potentially misleading")]),
+  risk_level: t.Union([t.Literal("safe"), t.Literal("caution"), t.Literal("suspicious")]),
+  classification: WhatsAppClassification,
   summary: t.String(),
   bias_detected: t.Array(t.String()),
   cross_references: t.Array(CrossReference),
@@ -16,7 +17,6 @@ const AnalysisOutputSchema = t.Object({
 });
 
 type TAnalysisOutput = typeof AnalysisOutputSchema.static;
-
 // Static language name map — avoids sending language codes to the model
 const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
@@ -24,6 +24,21 @@ const LANGUAGE_NAMES: Record<string, string> = {
   ms: "Malay (Bahasa Melayu)",
   ta: "Tamil (தமிழ்)",
 };
+const SYSTEM_PROMPT =
+  "You are a fact-checking assistant specialised in Singapore misinformation, scam messages, and digital fraud. " +
+  "Identify the key claims in the text, use exa_search to find sources that confirm or contradict them, " +
+  "then return your structured analysis.\n\n" +
+  "Use ONLY these enum values exactly as written:\n" +
+  "  • risk_level: 'safe' | 'caution' | 'suspicious'\n" +
+  "  • cross_references[].contradiction_level: 'low' | 'medium' | 'high'\n\n" +
+  "For the 'classification' field, choose exactly one of:\n" +
+  "  • 'legitimate'  – content is verified accurate\n" +
+  "  • 'misleading'  – partially false, manipulative framing, or missing key context\n" +
+  "  • 'scam'        – financial fraud, phishing attempt, or known scam pattern\n" +
+  "  • 'suspicious'  – likely false or problematic but cannot be fully confirmed\n" +
+  "  • 'unverified'  – insufficient evidence to make a determination\n\n" +
+  "Singapore-specific patterns to watch: CPF/SingPass/MAS impersonation, local bank phishing (DBS/OCBC/UOB), " +
+  "job scams, investment scams, love scams, Carousell/Shopee fraud, SingPost parcel scams.";
 
 export const analyzeTextRoute = new Elysia().post(
   "/analyze/text",
@@ -45,6 +60,7 @@ export const analyzeTextRoute = new Elysia().post(
       `risk_level must be exactly one of: "likely accurate", "unverified", "potentially misleading".\n\n` +
       `cross_references contradiction_level must be exactly one of: "low", "medium", "high". Never use "none".\n\n` +
       `${body.source_url ? `Source URL: ${body.source_url}\n` : ""}` +
+      `${body.preferred_language ? `Respond in language: ${body.preferred_language}\n` : ""}` +
       `Text:\n\n${body.text}`;
 
     console.log("🔍 [2/4] Calling AI with web search...");

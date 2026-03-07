@@ -3,7 +3,10 @@ import type { PendingAnalysis } from "../background/index";
 import { STORAGE_KEY } from "../background/index";
 
 type Language = "en" | "zh" | "ms" | "ta";
-type RiskLevel = "likely accurate" | "unverified" | "potentially misleading";
+/** Matches backend risk_level values */
+type RiskLevel = "safe" | "caution" | "suspicious";
+/** Granular WhatsApp FactCheck classification */
+type WhatsAppClassification = "legitimate" | "misleading" | "scam" | "suspicious" | "unverified";
 type Mode = "picker" | "text" | "audio" | "speech" | "image";
 
 interface CrossReference {
@@ -16,6 +19,8 @@ interface AnalysisResult {
   analysis_id: string;
   credibility_score: number;
   risk_level: RiskLevel;
+  /** Granular classification, present on WhatsApp fact-check results */
+  classification?: WhatsAppClassification;
   summary: string;
   bias_detected: string[];
   cross_references: CrossReference[];
@@ -36,10 +41,27 @@ type AppState =
 const BACKEND_URL = "http://localhost:3000";
 const MAX_IMAGES = 5;
 
+/** Maps the backend risk_level values to display colours */
 const RISK_COLORS: Record<RiskLevel, string> = {
-  "likely accurate": "#22c55e",
-  "unverified": "#f59e0b",
-  "potentially misleading": "#ef4444",
+  "safe": "#22c55e",
+  "caution": "#f59e0b",
+  "suspicious": "#ef4444",
+};
+
+const CLASSIFICATION_COLORS: Record<WhatsAppClassification, string> = {
+  "legitimate": "#22c55e",
+  "unverified":  "#f59e0b",
+  "suspicious":  "#f97316",
+  "misleading":  "#ef4444",
+  "scam":        "#dc2626",
+};
+
+const CLASSIFICATION_ICONS: Record<WhatsAppClassification, string> = {
+  "legitimate": "\u2705",
+  "unverified": "\u2753",
+  "suspicious": "\u26A0\uFE0F",
+  "misleading": "\uD83D\uDEA8",
+  "scam":       "\uD83D\uDED1",
 };
 
 const LANGUAGES: { value: Language; label: string }[] = [
@@ -122,6 +144,17 @@ const translations = {
     lowContradiction: "low contradiction",
     mediumContradiction: "medium contradiction",
     highContradiction: "high contradiction",
+    
+    // Classification
+    classificationLabel: "CLASSIFICATION",
+    classificationLegitimate: "Legitimate",
+    classificationMisleading: "Misleading",
+    classificationScam: "Scam",
+    classificationSuspicious: "Suspicious",
+    classificationUnverified: "Unverified",
+    riskSafe: "Safe",
+    riskCaution: "Caution",
+    riskSuspicious: "Suspicious",
   },
   
   zh: {
@@ -188,6 +221,16 @@ const translations = {
     lowContradiction: "低矛盾",
     mediumContradiction: "中等矛盾",
     highContradiction: "高矛盾",
+    
+    classificationLabel: "分类",
+    classificationLegitimate: "合法",
+    classificationMisleading: "误导性",
+    classificationScam: "诈骗",
+    classificationSuspicious: "可疑",
+    classificationUnverified: "未核实",
+    riskSafe: "安全",
+    riskCaution: "注意",
+    riskSuspicious: "可疑",
   },
   
   ms: {
@@ -254,6 +297,16 @@ const translations = {
     lowContradiction: "percanggahan rendah",
     mediumContradiction: "percanggahan sederhana",
     highContradiction: "percanggahan tinggi",
+    
+    classificationLabel: "KLASIFIKASI",
+    classificationLegitimate: "Sah",
+    classificationMisleading: "Mengelirukan",
+    classificationScam: "Penipuan",
+    classificationSuspicious: "Mencurigakan",
+    classificationUnverified: "Tidak Disahkan",
+    riskSafe: "Selamat",
+    riskCaution: "Berhati-hati",
+    riskSuspicious: "Mencurigakan",
   },
   
   ta: {
@@ -320,6 +373,16 @@ const translations = {
     lowContradiction: "குறைந்த முரண்பாடு",
     mediumContradiction: "நடுத்தர முரண்பாடு",
     highContradiction: "உயர் முரண்பாடு",
+    
+    classificationLabel: "வகைப்பாடு",
+    classificationLegitimate: "சட்டப்பூர்வமானது",
+    classificationMisleading: "தவறான தகவல்",
+    classificationScam: "மோசடி",
+    classificationSuspicious: "சந்தேகமானது",
+    classificationUnverified: "உறுதிப்படுத்தப்படாதது",
+    riskSafe: "பாதுகாப்பானது",
+    riskCaution: "கவனமாக இருக்கவும்",
+    riskSuspicious: "சந்தேகமானது",
   },
 };
 
@@ -351,7 +414,7 @@ function injectStyle(id: string, css: string) {
 }
 
 function ScoreRing({ score }: { score: number }) {
-  const color = score >= 70 ? RISK_COLORS["likely accurate"] : score >= 40 ? RISK_COLORS["unverified"] : RISK_COLORS["potentially misleading"];
+  const color = score >= 70 ? RISK_COLORS["safe"] : score >= 40 ? RISK_COLORS["caution"] : RISK_COLORS["suspicious"];
   return (
     <div style={{
       width: 72, height: 72, borderRadius: "50%",
@@ -775,7 +838,21 @@ function LoadingState({ lang }: { lang: Language }) {
 
 function ResultState({ result, onReset, lang }: { result: AnalysisResult; onReset: () => void; lang: Language }) {
   const t = translations[lang];
-  const riskColor = RISK_COLORS[result.risk_level];
+  const riskColor = RISK_COLORS[result.risk_level] ?? "#f59e0b";
+
+  const riskLabel: Record<RiskLevel, string> = {
+    safe: t.riskSafe,
+    caution: t.riskCaution,
+    suspicious: t.riskSuspicious,
+  };
+
+  const classificationLabel: Record<WhatsAppClassification, string> = {
+    legitimate: t.classificationLegitimate,
+    misleading: t.classificationMisleading,
+    scam: t.classificationScam,
+    suspicious: t.classificationSuspicious,
+    unverified: t.classificationUnverified,
+  };
   
   const getContradictionText = (level: "low" | "medium" | "high") => {
     if (level === "low") return t.lowContradiction;
@@ -785,11 +862,37 @@ function ResultState({ result, onReset, lang }: { result: AnalysisResult; onRese
   
   return (
     <div>
+      {/* Classification badge — shown when the result includes a WhatsApp classification */}
+      {result.classification && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          marginBottom: 12, padding: "10px 14px",
+          background: `${CLASSIFICATION_COLORS[result.classification]}18`,
+          border: `1px solid ${CLASSIFICATION_COLORS[result.classification]}55`,
+          borderRadius: 10,
+        }}>
+          <span style={{ fontSize: 22, lineHeight: 1 }}>
+            {CLASSIFICATION_ICONS[result.classification]}
+          </span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 10, color: "#888", letterSpacing: "0.05em", marginBottom: 2 }}>
+              {t.classificationLabel}
+            </div>
+            <div style={{
+              fontSize: 15, fontWeight: 700,
+              color: CLASSIFICATION_COLORS[result.classification],
+            }}>
+              {classificationLabel[result.classification]}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16, background: "#1a1a2e", borderRadius: 8, padding: 12 }}>
         <ScoreRing score={result.credibility_score} />
         <div>
           <div style={{ fontSize: 11, color: "#888", marginBottom: 4 }}>{t.credibilityScore}</div>
-          <Badge label={result.risk_level} color={riskColor} />
+          <Badge label={riskLabel[result.risk_level] ?? result.risk_level} color={riskColor} />
         </div>
       </div>
 
@@ -822,7 +925,7 @@ function ResultState({ result, onReset, lang }: { result: AnalysisResult; onRese
           {result.cross_references.map((ref, i) => (
             <div key={i} style={{
               marginBottom: 8, fontSize: 12,
-              borderLeft: `3px solid ${RISK_COLORS[ref.contradiction_level === "high" ? "potentially misleading" : ref.contradiction_level === "medium" ? "unverified" : "likely accurate"]}`,
+              borderLeft: `3px solid ${ref.contradiction_level === "high" ? "#ef4444" : ref.contradiction_level === "medium" ? "#f59e0b" : "#22c55e"}`,
               paddingLeft: 8,
             }}>
               <a href={ref.url} target="_blank" rel="noreferrer" style={{ color: "#7c7cff", textDecoration: "none" }}>{ref.source}</a>
