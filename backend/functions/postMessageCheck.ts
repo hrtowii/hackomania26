@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import crypto from "crypto";
+import crypto, { randomUUID } from "crypto";
 import { MessageCheckCrossReference, MessageCheckInput } from "../src/types";
 const supabaseUrl = Bun.env.SUPABASE_URL;
 const supabaseKey = Bun.env.SUPABASE_ANON_KEY;
@@ -14,7 +14,8 @@ function normalizeText(input: string): string {
 }
 
 function hashText(input: string): string {
-  return crypto.createHash("sha256").update(input).digest("hex");
+  // return crypto.createHash("sha256").update(input).digest("hex");
+  return randomUUID();
 }
 
 function validateInput(input: MessageCheckInput) {

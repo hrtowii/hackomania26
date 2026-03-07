@@ -31,7 +31,7 @@ export const analyzeTextRoute = new Elysia().post(
   async ({ body }) => {
     const LangChosen = LANGUAGE_NAMES[body.preferred_language ?? "en"] ?? "English";
 
-    console.log("📥 [1/4] Request received:", {
+    console.log("[1/4] Request received:", {
       textLength: body.text.length,
       language: LangChosen,
       source: body.source_url || "none",
@@ -46,7 +46,7 @@ export const analyzeTextRoute = new Elysia().post(
       `${body.preferred_language ? `Respond in language: ${body.preferred_language}\n` : ""}` +
       `Text:\n\n${body.text}`;
 
-    console.log("🔍 [2/4] Calling AI with web search...");
+    console.log("[2/4] Calling AI with web search...");
     const start = Date.now();
 
     const { text: raw, searchResults } = await callAiWithSearch(prompt, {
@@ -61,10 +61,10 @@ export const analyzeTextRoute = new Elysia().post(
       },
     });
 
-    console.log(`✅ [3/4] AI responded in ${((Date.now() - start) / 1000).toFixed(1)}s`);
-    console.log("📄 Raw length:", raw?.length ?? 0);
-    console.log("📄 Raw preview:", raw?.slice(0, 200));
-    console.log("🔗 Exa results:", searchResults.length);
+    console.log(`[3/4] AI responded in ${((Date.now() - start) / 1000).toFixed(1)}s`);
+    // console.log("📄 Raw length:", raw?.length ?? 0);
+    // console.log("📄 Raw preview:", raw?.slice(0, 200));
+    // console.log("🔗 Exa results:", searchResults.length);
 
     if (!raw || raw.trim() === "") {
       throw new Error("AI returned empty response");
@@ -90,7 +90,7 @@ export const analyzeTextRoute = new Elysia().post(
       let source = "External source";
       try {
         source = new URL(item.url).hostname.replace(/^www\./, "");
-      } catch {}
+      } catch { }
       return {
         title: item.title?.trim() || source,
         source,
@@ -99,7 +99,7 @@ export const analyzeTextRoute = new Elysia().post(
       };
     });
 
-    console.log("🎉 [4/4] Done. score:", output.credibility_score);
+    console.log("[4/4] Done. score:", output.credibility_score);
 
     let db_id: string | undefined;
     try {
