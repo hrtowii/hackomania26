@@ -95,9 +95,15 @@ export async function callAiWithSearch(
 
   const firstMsg = first.choices[0].message;
 
+  // If no tool call, re-ask with JSON format enforced
   if (first.choices[0].finish_reason !== "tool_calls" || !firstMsg.tool_calls?.length) {
-    console.log("no tool call")
-    return firstMsg.content ?? "";
+    console.log("no tool call — retrying with JSON format");
+    const retry = await openai_client.chat.completions.create({
+      model,
+      messages,
+      ...(responseFormat ? { response_format: responseFormat as unknown as OpenAI.ResponseFormatJSONSchema } : {}),
+    });
+    return retry.choices[0].message.content ?? "";
   }
 
   const toolCall = firstMsg.tool_calls[0];

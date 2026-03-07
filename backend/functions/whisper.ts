@@ -1,48 +1,21 @@
-import { nodewhisper } from "nodejs-whisper";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { readFile } from "fs/promises";
+import { existsSync } from "fs";
 
 export async function transcribe(audioPath: string): Promise<string> {
-  const result = await nodewhisper(audioPath, {
-    modelName: "base",
-    autoDownloadModelName: "base",
-    removeWavFileAfterTranscription: false,
-    withCuda: false,
-    logger: console,
-    whisperOptions: {
-      outputInText: true,
-      outputInSrt: false,
-      outputInVtt: false,
-      outputInJson: false,
-      outputInJsonFull: false,
-      outputInCsv: false,
-      outputInLrc: false,
-      outputInWords: false,
-      translateToEnglish: false,
-      wordTimestamps: false,
-      timestamps_length: 20,
-      splitOnWord: true,
-    },
+  if (!existsSync(audioPath)) throw new Error(`File not found: ${audioPath}`);
+  
+  const buffer = await readFile(audioPath);
+  const formData = new FormData();
+  const blob = new Blob([buffer], { type: "audio/wav" });
+  formData.append("file", blob, "audio.wav");
+  
+  const response = await fetch("http://localhost:8000/v1/audio/transcriptions", {
+    method: "POST",
+    body: formData,
   });
-
-  return typeof result === "string" ? result : String(result);
+  
+  if (!response.ok) throw new Error(`API error: ${response.status}`);
+  
+  const result = await response.json();
+  return result.text || "";
 }
-
-export async function callWhisperTranscribe(
-  audioPath: string = path.resolve(__dirname, "audio.wav")
-): Promise<string | void> {
-  try {
-    const text = await transcribe(audioPath);
-    console.log("Transcription:");
-    console.log(text);
-    return text;
-  } catch (error) {
-    console.error("Transcription failed:");
-    console.error(error);
-  }
-}
-
-callWhisperTranscribe(path.resolve(__dirname, "audio2.m4a"));
