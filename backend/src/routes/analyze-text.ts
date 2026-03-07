@@ -3,7 +3,7 @@ import { AnalyzeTextBody, AnalysisAiOutputSchema, AnalysisResponse } from "../ty
 import type { TAnalysisAiOutput, TAnalysisResponse } from "../types";
 import { randomUUID } from "crypto";
 import { callAiWithSearch } from "../../functions/call-ai";
-
+import { postMessageCheck } from "../../functions/postMessageCheck";
 const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
   zh: "Simplified Chinese (中文)",
@@ -89,7 +89,25 @@ export const analyzeTextRoute = new Elysia().post(
     }));
 
     console.log("🎉 [4/4] Done. score:", output.credibility_score);
+    let db_id: string | undefined;
 
+    try {
+      const inserted = await postMessageCheck({
+        content_text: body.text,
+        credibility_score: output.credibility_score,
+        summary: output.summary,
+        recommendation: output.recommendation,
+        bias_detected: output.bias_detected,
+        cross_references: output.cross_references,
+        key_claims: output.key_claims,
+        image_present: false,
+        image_hash: null,
+      });
+
+      db_id = inserted?.id;
+    } catch (err) {
+      console.error("Failed to insert message_check into DB:", err);
+    }
     return {
       ...output,
       cross_references: normalizedCrossReferences,

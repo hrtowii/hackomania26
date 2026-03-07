@@ -30,6 +30,7 @@ export const PreferredLanguageField = t.Optional(
 // ─── Analysis response (shared by /analyze/url, /analyze/text, /image) ──────
 
 export const CrossReference = t.Object({
+  title: t.String(),
   source: t.String(),
   contradiction_level: t.Union([
     t.Literal("low"),
