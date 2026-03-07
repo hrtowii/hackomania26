@@ -18,6 +18,11 @@ export interface AnalyzeSelectionMessage {
   sourceUrl: string;
 }
 
+export interface AnalyzeUrlMessage {
+  type: "ANALYZE_URL";
+  targetUrl?: string;
+}
+
 // ─── Button helpers ───────────────────────────────────────────────────────────
 
 function removeButton(): void {
@@ -117,8 +122,6 @@ let debounceTimer: ReturnType<typeof setTimeout>;
 
 // ─── Scam Detection ───────────────────────────────────────────────────────────
 
-const BACKEND_URL = "http://localhost:3000";
-
 /** Set to true while we programmatically re-fire a click/submit so the
  *  interceptor ignores it and doesn't trigger a second analysis. */
 let scamCheckInProgress = false;
@@ -153,23 +156,23 @@ function showScamPopup(
 
   const accentColor =
     safetyScore >= 90 ? "#22c55e" :   // green  — safe
-    safetyScore >= 70 ? "#84cc16" :   // lime   — mostly safe
-    safetyScore >= 50 ? "#f59e0b" :   // amber  — caution
-    safetyScore >= 25 ? "#f97316" :   // orange — suspicious
-                        "#ef4444";    // red    — likely scam
+      safetyScore >= 70 ? "#84cc16" :   // lime   — mostly safe
+        safetyScore >= 50 ? "#f59e0b" :   // amber  — caution
+          safetyScore >= 25 ? "#f97316" :   // orange — suspicious
+            "#ef4444";    // red    — likely scam
 
   const emoji =
     safetyScore >= 90 ? "✅" :
-    safetyScore >= 70 ? "🟡" :
-    safetyScore >= 50 ? "⚠️" :
-                        "🚨";
+      safetyScore >= 70 ? "🟡" :
+        safetyScore >= 50 ? "⚠️" :
+          "🚨";
 
   const label =
     safetyScore >= 90 ? "Safe" :
-    safetyScore >= 70 ? "Mostly Safe" :
-    safetyScore >= 50 ? "Caution" :
-    safetyScore >= 25 ? "Suspicious" :
-                        "Likely Scam";
+      safetyScore >= 70 ? "Mostly Safe" :
+        safetyScore >= 50 ? "Caution" :
+          safetyScore >= 25 ? "Suspicious" :
+            "Likely Scam";
 
   // Conic-gradient safety ring
   const ringDeg = safetyScore * 3.6;
@@ -252,16 +255,16 @@ interface ScamResult {
 async function fetchScamAnalysis(
   targetUrl: string | undefined,
 ): Promise<ScamResult | null> {
-  const url = targetUrl ?? window.location.href;
   try {
-    const res = await fetch(`${BACKEND_URL}/analyze/url`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-    });
-    if (!res.ok) return null;
-    const data = await res.json() as { credibility_score: number; summary: string };
-    return { safetyScore: data.credibility_score, summary: data.summary };
+    const result = await chrome.runtime.sendMessage({
+      type: "ANALYZE_URL",
+      targetUrl,
+    } satisfies AnalyzeUrlMessage) as ScamResult | null;
+
+    if (!result) return null;
+    if (typeof result.safetyScore !== "number") return null;
+    if (typeof result.summary !== "string") return null;
+    return result;
   } catch {
     return null; // silently fail — don't block the user
   }
@@ -403,7 +406,7 @@ async function handleDocumentSubmit(e: SubmitEvent): Promise<void> {
   const result = await fetchScamAnalysis(targetUrl);
   form.style.opacity = "";
 
-  if (!result || result.safetyScore >= 70) {
+  if (!result || result.safetyScore <== 70) {
     scamCheckInProgress = true;
     form.submit();
     scamCheckInProgress = false;
