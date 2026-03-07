@@ -123,6 +123,13 @@ const BACKEND_URL = "http://localhost:3000";
  *  interceptor ignores it and doesn't trigger a second analysis. */
 let scamCheckInProgress = false;
 
+/** Elements the user has explicitly approved — next click passes through once. */
+const approvedElements = new WeakSet<HTMLElement>();
+
+/** Elements currently being analysed — re-clicking during the async AI call
+ *  passes through immediately rather than spawning a second popup. */
+const pendingElements = new WeakSet<HTMLElement>();
+
 /** Track last known mouse position so the popup can anchor to it even on
  *  form submits triggered by keyboard / Enter key. */
 let lastMouseX = window.innerWidth / 2;
@@ -285,6 +292,18 @@ document.addEventListener(
     ) as HTMLElement | null;
     if (!el) return;
 
+    // User already approved this element — let it through and clear the approval
+    if (approvedElements.has(el)) {
+      approvedElements.delete(el);
+      return;
+    }
+
+    // Analysis already in-flight for this element — treat re-click as proceed
+    if (pendingElements.has(el)) {
+      approvedElements.add(el); // mark so the natural click passes through
+      return;
+    }
+
     // Determine destination
     let targetUrl: string | undefined;
     if (el.tagName === "A") {
@@ -308,8 +327,19 @@ document.addEventListener(
     // Dim element to signal processing
     const prevOpacity = el.style.opacity;
     el.style.opacity = "0.5";
+    pendingElements.add(el);
     const result = await fetchScamAnalysis(targetUrl, buttonText);
+    pendingElements.delete(el);
     el.style.opacity = prevOpacity;
+
+    // If the user already re-clicked during analysis, just proceed
+    if (approvedElements.has(el)) {
+      approvedElements.delete(el);
+      scamCheckInProgress = true;
+      el.click();
+      scamCheckInProgress = false;
+      return;
+    }
 
     if (!result || result.safetyScore > 100) {
       // Safe or analysis unavailable — proceed transparently
@@ -320,13 +350,17 @@ document.addEventListener(
     }
 
     // Risky — show warning popup
+    // Pre-approve the element so that clicking it again (step 4) passes through
+    approvedElements.add(el);
     const proceedBtn = showScamPopup(e.clientX, e.clientY, result.safetyScore, result.summary);
     proceedBtn.addEventListener("click", () => {
       removeScamPopup();
-      scamCheckInProgress = true;
-      el.click();
-      scamCheckInProgress = false;
+      el.click(); // approvedElements already has el, so it passes through
     });
+    document.getElementById("scam-cancel-btn")!.addEventListener("click", () => {
+      approvedElements.delete(el); // revoke approval on cancel
+      removeScamPopup();
+    }, { once: true });
   },
   true // capture phase
 );
