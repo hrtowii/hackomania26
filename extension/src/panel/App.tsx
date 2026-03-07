@@ -43,11 +43,285 @@ const RISK_COLORS: Record<RiskLevel, string> = {
 };
 
 const LANGUAGES: { value: Language; label: string }[] = [
-  { value: "en",       label: "English"  },
-  { value: "zh",       label: "中文"     },
-  { value: "ms",       label: "Melayu"   },
-  { value: "ta",       label: "தமிழ்"   },
+  { value: "en", label: "English" },
+  { value: "zh", label: "中文" },
+  { value: "ms", label: "Melayu" },
+  { value: "ta", label: "தமிழ்" },
 ];
+
+// Translations
+const translations = {
+  en: {
+    appName: "TruthLens",
+    responseLanguage: "RESPONSE LANGUAGE",
+    analyzing: "Analyzing…",
+    credibilityScore: "CREDIBILITY SCORE",
+    summary: "Summary",
+    recommendation: "Recommendation",
+    keyClaims: "Key Claims",
+    biasDetected: "Bias Detected",
+    crossReferences: "Cross-References",
+    analyzeAnother: "Analyze another selection",
+    back: "Back",
+    
+    // Mode picker
+    modePickerTitle: "How would you like to fact-check today?",
+    modeText: "Paste / Type Text",
+    modeTextDesc: "Paste a news snippet, WhatsApp message, or any claim",
+    modeAudio: "Upload Audio File",
+    modeAudioDesc: "Upload a .wav, .mp3, or .m4a file to transcribe and analyse",
+    modeSpeech: "Speak to Analyse",
+    modeSpeechDesc: "Record live speech via your microphone",
+    modeImage: "Upload Screenshot",
+    modeImageDesc: "Check images or forwarded photos for misleading content",
+    
+    // Text input
+    pasteOrType: "PASTE OR TYPE TEXT",
+    textPlaceholder: "Paste a news headline, WhatsApp message, social media post…",
+    analyzeText: "Analyze Text",
+    
+    // Audio
+    uploadAudioFile: "UPLOAD AUDIO FILE",
+    dropToUpload: "Drop to upload",
+    dragOrClick: "Drag & drop or click to select",
+    audioFormats: "WAV · MP3 · M4A · OGG",
+    transcribing: "Transcribing…",
+    transcribeAndAnalyze: "Transcribe & Analyse",
+    transcriptionFailed: "Transcription failed — check that the backend /transcribe endpoint is running.",
+    
+    // Speech
+    listening: "● Listening…",
+    tapMicToStart: "Tap mic to start",
+    speechSupport: "Supports English, Mandarin, Malay & Tamil.",
+    tapAgainToStop: "Tap again to stop.",
+    transcript: "TRANSCRIPT",
+    analyzeSpeech: "Analyze Speech",
+    clear: "Clear",
+    speechNotSupported: "Speech recognition not supported in this browser.",
+    microphoneError: "Microphone error — check browser permissions.",
+    
+    // Image
+    uploadScreenshots: "UPLOAD SCREENSHOT(S)",
+    imageDesc: "Check images or forwarded photos for misleading visuals or fake headlines. Up to",
+    imageDescImages: "images.",
+    imageFormats: "PNG · JPG · WEBP · up to",
+    maxReached: "Max",
+    maxReachedEnd: "reached",
+    analysingImages: "Analysing…",
+    analyzeImages: "Analyse",
+    image: "image",
+    images: "images",
+    imageFailed: "Image analysis failed — check that the backend /analyze-image endpoint is running.",
+    
+    // States
+    selectedText: "SELECTED TEXT",
+    analyze: "Analyze",
+    dismiss: "Dismiss",
+    
+    // Contradiction levels
+    lowContradiction: "low contradiction",
+    mediumContradiction: "medium contradiction",
+    highContradiction: "high contradiction",
+  },
+  
+  zh: {
+    appName: "真相透镜",
+    responseLanguage: "回复语言",
+    analyzing: "分析中…",
+    credibilityScore: "可信度评分",
+    summary: "摘要",
+    recommendation: "建议",
+    keyClaims: "关键声明",
+    biasDetected: "检测到的偏见",
+    crossReferences: "交叉引用",
+    analyzeAnother: "分析另一个选择",
+    back: "返回",
+    
+    modePickerTitle: "您今天想如何进行事实核查？",
+    modeText: "粘贴/输入文本",
+    modeTextDesc: "粘贴新闻片段、WhatsApp消息或任何声明",
+    modeAudio: "上传音频文件",
+    modeAudioDesc: "上传.wav、.mp3或.m4a文件进行转录和分析",
+    modeSpeech: "语音分析",
+    modeSpeechDesc: "通过麦克风录制实时语音",
+    modeImage: "上传截图",
+    modeImageDesc: "检查图片或转发的照片是否有误导性内容",
+    
+    pasteOrType: "粘贴或输入文本",
+    textPlaceholder: "粘贴新闻标题、WhatsApp消息、社交媒体帖子…",
+    analyzeText: "分析文本",
+    
+    uploadAudioFile: "上传音频文件",
+    dropToUpload: "放下以上传",
+    dragOrClick: "拖放或点击选择",
+    audioFormats: "WAV · MP3 · M4A · OGG",
+    transcribing: "转录中…",
+    transcribeAndAnalyze: "转录并分析",
+    transcriptionFailed: "转录失败 — 请检查后端 /transcribe 端点是否正在运行。",
+    
+    listening: "● 正在听…",
+    tapMicToStart: "点击麦克风开始",
+    speechSupport: "支持英语、普通话、马来语和泰米尔语。",
+    tapAgainToStop: "再次点击停止。",
+    transcript: "转录文本",
+    analyzeSpeech: "分析语音",
+    clear: "清除",
+    speechNotSupported: "此浏览器不支持语音识别。",
+    microphoneError: "麦克风错误 — 请检查浏览器权限。",
+    
+    uploadScreenshots: "上传截图",
+    imageDesc: "检查图片或转发的照片是否有误导性视觉效果或虚假标题。最多",
+    imageDescImages: "张图片。",
+    imageFormats: "PNG · JPG · WEBP · 最多",
+    maxReached: "已达到最大值",
+    maxReachedEnd: "",
+    analysingImages: "分析中…",
+    analyzeImages: "分析",
+    image: "张图片",
+    images: "张图片",
+    imageFailed: "图片分析失败 — 请检查后端 /analyze-image 端点是否正在运行。",
+    
+    selectedText: "选定的文本",
+    analyze: "分析",
+    dismiss: "关闭",
+    
+    lowContradiction: "低矛盾",
+    mediumContradiction: "中等矛盾",
+    highContradiction: "高矛盾",
+  },
+  
+  ms: {
+    appName: "TruthLens",
+    responseLanguage: "BAHASA RESPONS",
+    analyzing: "Menganalisis…",
+    credibilityScore: "SKOR KREDIBILITI",
+    summary: "Ringkasan",
+    recommendation: "Cadangan",
+    keyClaims: "Tuntutan Utama",
+    biasDetected: "Bias Dikesan",
+    crossReferences: "Rujukan Silang",
+    analyzeAnother: "Analisis pilihan lain",
+    back: "Kembali",
+    
+    modePickerTitle: "Bagaimana anda ingin menyemak fakta hari ini?",
+    modeText: "Tampal / Taip Teks",
+    modeTextDesc: "Tampal petikan berita, mesej WhatsApp, atau sebarang tuntutan",
+    modeAudio: "Muat Naik Fail Audio",
+    modeAudioDesc: "Muat naik fail .wav, .mp3, atau .m4a untuk transkripsi dan analisis",
+    modeSpeech: "Bercakap untuk Analisis",
+    modeSpeechDesc: "Rakam ucapan langsung melalui mikrofon anda",
+    modeImage: "Muat Naik Tangkapan Skrin",
+    modeImageDesc: "Semak imej atau foto yang dimajukan untuk kandungan yang mengelirukan",
+    
+    pasteOrType: "TAMPAL ATAU TAIP TEKS",
+    textPlaceholder: "Tampal tajuk berita, mesej WhatsApp, hantaran media sosial…",
+    analyzeText: "Analisis Teks",
+    
+    uploadAudioFile: "MUAT NAIK FAIL AUDIO",
+    dropToUpload: "Lepaskan untuk muat naik",
+    dragOrClick: "Seret & lepas atau klik untuk pilih",
+    audioFormats: "WAV · MP3 · M4A · OGG",
+    transcribing: "Menyalin…",
+    transcribeAndAnalyze: "Salin & Analisis",
+    transcriptionFailed: "Penyalinan gagal — semak sama ada titik akhir backend /transcribe sedang berjalan.",
+    
+    listening: "● Mendengar…",
+    tapMicToStart: "Ketik mikrofon untuk mula",
+    speechSupport: "Menyokong Bahasa Inggeris, Mandarin, Melayu & Tamil.",
+    tapAgainToStop: "Ketik lagi untuk berhenti.",
+    transcript: "TRANSKRIP",
+    analyzeSpeech: "Analisis Ucapan",
+    clear: "Padam",
+    speechNotSupported: "Pengecaman pertuturan tidak disokong dalam pelayar ini.",
+    microphoneError: "Ralat mikrofon — semak kebenaran pelayar.",
+    
+    uploadScreenshots: "MUAT NAIK TANGKAPAN SKRIN",
+    imageDesc: "Semak imej atau foto yang dimajukan untuk visual atau tajuk berita palsu yang mengelirukan. Sehingga",
+    imageDescImages: "imej.",
+    imageFormats: "PNG · JPG · WEBP · sehingga",
+    maxReached: "Maksimum",
+    maxReachedEnd: "dicapai",
+    analysingImages: "Menganalisis…",
+    analyzeImages: "Analisis",
+    image: "imej",
+    images: "imej",
+    imageFailed: "Analisis imej gagal — semak sama ada titik akhir backend /analyze-image sedang berjalan.",
+    
+    selectedText: "TEKS TERPILIH",
+    analyze: "Analisis",
+    dismiss: "Tutup",
+    
+    lowContradiction: "percanggahan rendah",
+    mediumContradiction: "percanggahan sederhana",
+    highContradiction: "percanggahan tinggi",
+  },
+  
+  ta: {
+    appName: "உண்மை லென்ஸ்",
+    responseLanguage: "பதில் மொழி",
+    analyzing: "பகுப்பாய்வு செய்கிறது…",
+    credibilityScore: "நம்பகத்தன்மை மதிப்பெண்",
+    summary: "சுருக்கம்",
+    recommendation: "பரிந்துரை",
+    keyClaims: "முக்கிய கூற்றுகள்",
+    biasDetected: "சார்பு கண்டறியப்பட்டது",
+    crossReferences: "குறுக்கு குறிப்புகள்",
+    analyzeAnother: "மற்றொரு தேர்வை பகுப்பாய்வு செய்க",
+    back: "பின்செல்",
+    
+    modePickerTitle: "இன்று நீங்கள் எவ்வாறு உண்மையை சரிபார்க்க விரும்புகிறீர்கள்?",
+    modeText: "ஒட்டவும் / உரை தட்டச்சு செய்யவும்",
+    modeTextDesc: "செய்தி துணுக்கு, WhatsApp செய்தி அல்லது ஏதேனும் கூற்றை ஒட்டவும்",
+    modeAudio: "ஆடியோ கோப்பை பதிவேற்றவும்",
+    modeAudioDesc: ".wav, .mp3, அல்லது .m4a கோப்பை பதிவேற்றி, படியெடுத்து பகுப்பாய்வு செய்யவும்",
+    modeSpeech: "பேசி பகுப்பாய்வு செய்க",
+    modeSpeechDesc: "உங்கள் மைக்ரோஃபோன் மூலம் நேரலை பேச்சை பதிவு செய்க",
+    modeImage: "திரை பிடிப்பை பதிவேற்றவும்",
+    modeImageDesc: "தவறாக வழிநடத்தும் உள்ளடக்கத்திற்காக படங்கள் அல்லது அனுப்பப்பட்ட புகைப்படங்களை சரிபார்க்கவும்",
+    
+    pasteOrType: "ஒட்டவும் அல்லது உரை தட்டச்சு செய்யவும்",
+    textPlaceholder: "செய்தி தலைப்பு, WhatsApp செய்தி, சமூக ஊடக இடுகை ஒட்டவும்…",
+    analyzeText: "உரையை பகுப்பாய்வு செய்க",
+    
+    uploadAudioFile: "ஆடியோ கோப்பை பதிவேற்றவும்",
+    dropToUpload: "பதிவேற்ற விடவும்",
+    dragOrClick: "இழுத்து விடவும் அல்லது தேர்ந்தெடுக்க கிளிக் செய்யவும்",
+    audioFormats: "WAV · MP3 · M4A · OGG",
+    transcribing: "படியெடுக்கிறது…",
+    transcribeAndAnalyze: "படியெடுத்து பகுப்பாய்வு செய்க",
+    transcriptionFailed: "படியெடுப்பு தோல்வியடைந்தது — பின்புல /transcribe endpoint இயங்குகிறதா என சரிபார்க்கவும்.",
+    
+    listening: "● கேட்கிறது…",
+    tapMicToStart: "தொடங்க மைக்கை தட்டவும்",
+    speechSupport: "ஆங்கிலம், மாண்டரின், மலாய் & தமிழை ஆதரிக்கிறது.",
+    tapAgainToStop: "நிறுத்த மீண்டும் தட்டவும்.",
+    transcript: "படியெடுப்பு",
+    analyzeSpeech: "பேச்சை பகுப்பாய்வு செய்க",
+    clear: "அழி",
+    speechNotSupported: "இந்த உலாவியில் பேச்சு அங்கீகாரம் ஆதரிக்கப்படவில்லை.",
+    microphoneError: "மைக்ரோஃபோன் பிழை — உலாவி அனுமதிகளை சரிபார்க்கவும்.",
+    
+    uploadScreenshots: "திரை பிடிப்புகளை பதிவேற்றவும்",
+    imageDesc: "தவறாக வழிநடத்தும் காட்சிகள் அல்லது போலி தலைப்புகளுக்காக படங்கள் அல்லது அனுப்பப்பட்ட புகைப்படங்களை சரிபார்க்கவும். அதிகபட்சம்",
+    imageDescImages: "படங்கள்.",
+    imageFormats: "PNG · JPG · WEBP · அதிகபட்சம்",
+    maxReached: "அதிகபட்சம்",
+    maxReachedEnd: "அடைந்தது",
+    analysingImages: "பகுப்பாய்வு செய்கிறது…",
+    analyzeImages: "பகுப்பாய்வு செய்க",
+    image: "படம்",
+    images: "படங்கள்",
+    imageFailed: "படம் பகுப்பாய்வு தோல்வியடைந்தது — பின்புல /analyze-image endpoint இயங்குகிறதா என சரிபார்க்கவும்.",
+    
+    selectedText: "தேர்ந்தெடுக்கப்பட்ட உரை",
+    analyze: "பகுப்பாய்வு செய்க",
+    dismiss: "நிராகரி",
+    
+    lowContradiction: "குறைந்த முரண்பாடு",
+    mediumContradiction: "நடுத்தர முரண்பாடு",
+    highContradiction: "உயர் முரண்பாடு",
+  },
+};
 
 // css style helper
 
@@ -120,18 +394,19 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 // mode pickers
 
-function ModePicker({ onPick }: { onPick: (m: Mode) => void }) {
+function ModePicker({ onPick, lang }: { onPick: (m: Mode) => void; lang: Language }) {
+  const t = translations[lang];
   const modes: { mode: Mode; icon: string; title: string; desc: string }[] = [
-    { mode: "text",   icon: "✍️", title: "Paste / Type Text",  desc: "Paste a news snippet, WhatsApp message, or any claim" },
-    { mode: "audio",  icon: "🎵", title: "Upload Audio File",  desc: "Upload a .wav, .mp3, or .m4a file to transcribe and analyse" },
-    { mode: "speech", icon: "🎙️", title: "Speak to Analyse",   desc: "Record live speech via your microphone" },
-    { mode: "image",  icon: "🖼️", title: "Upload Screenshot",  desc: "Check images or forwarded photos for misleading content" },
+    { mode: "text", icon: "✍️", title: t.modeText, desc: t.modeTextDesc },
+    { mode: "audio", icon: "🎵", title: t.modeAudio, desc: t.modeAudioDesc },
+    { mode: "speech", icon: "🎙️", title: t.modeSpeech, desc: t.modeSpeechDesc },
+    { mode: "image", icon: "🖼️", title: t.modeImage, desc: t.modeImageDesc },
   ];
 
   return (
     <div>
       <p style={{ fontSize: 12, color: "#555", marginBottom: 14, textAlign: "center", lineHeight: 1.5 }}>
-        How would you like to fact-check today?
+        {t.modePickerTitle}
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {modes.map(({ mode, icon, title, desc }) => (
@@ -170,19 +445,17 @@ function ModePicker({ onPick }: { onPick: (m: Mode) => void }) {
   );
 }
 
-// Text Input 
-// Feeds into the existing working POST /analyze/text call.
-
-function TextInputView({ onSubmit }: { onSubmit: (text: string) => void }) {
+function TextInputView({ onSubmit, lang }: { onSubmit: (text: string) => void; lang: Language }) {
+  const t = translations[lang];
   const [text, setText] = useState("");
   const ready = text.trim().length > 0;
   return (
     <div>
-      <label style={{ ...dimText, display: "block", marginBottom: 6 }}>PASTE OR TYPE TEXT</label>
+      <label style={{ ...dimText, display: "block", marginBottom: 6 }}>{t.pasteOrType}</label>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Paste a news headline, WhatsApp message, social media post…"
+        placeholder={t.textPlaceholder}
         style={{
           width: "100%", minHeight: 120, boxSizing: "border-box",
           background: "#13132a", border: "1px solid #3a3a5e",
@@ -201,18 +474,14 @@ function TextInputView({ onSubmit }: { onSubmit: (text: string) => void }) {
           cursor: ready ? "pointer" : "not-allowed",
         }}
       >
-        Analyze Text
+        {t.analyzeText}
       </button>
     </div>
   );
 }
 
-// Audio View
-// Uploads audio to POST /transcribe (Whisper backend), then passes the
-// returned text to analyzeText() → POST /analyze/text.
-// TODO: ensure backend POST /transcribe returns { text: string }
-
-function AudioFileView({ onTranscribed }: { onTranscribed: (text: string) => void }) {
+function AudioFileView({ onTranscribed, lang }: { onTranscribed: (text: string) => void; lang: Language }) {
+  const t = translations[lang];
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -230,7 +499,7 @@ function AudioFileView({ onTranscribed }: { onTranscribed: (text: string) => voi
       const { text } = await res.json();
       onTranscribed(text);
     } catch {
-      setError("Transcription failed — check that the backend /transcribe endpoint is running.");
+      setError(t.transcriptionFailed);
     } finally {
       setLoading(false);
     }
@@ -238,7 +507,7 @@ function AudioFileView({ onTranscribed }: { onTranscribed: (text: string) => voi
 
   return (
     <div>
-      <label style={{ ...dimText, display: "block", marginBottom: 6 }}>UPLOAD AUDIO FILE</label>
+      <label style={{ ...dimText, display: "block", marginBottom: 6 }}>{t.uploadAudioFile}</label>
       <div
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
@@ -264,9 +533,9 @@ function AudioFileView({ onTranscribed }: { onTranscribed: (text: string) => voi
           <line x1="12" y1="3" x2="12" y2="15" />
         </svg>
         <p style={{ fontSize: 12, color: dragging ? "#a78bfa" : file ? "#a78bfa" : "#666", margin: 0 }}>
-          {file ? file.name : dragging ? "Drop to upload" : "Drag & drop or click to select"}
+          {file ? file.name : dragging ? t.dropToUpload : t.dragOrClick}
         </p>
-        <p style={{ fontSize: 10, color: "#444", marginTop: 3 }}>WAV · MP3 · M4A · OGG</p>
+        <p style={{ fontSize: 10, color: "#444", marginTop: 3 }}>{t.audioFormats}</p>
         <input ref={inputRef} type="file" accept="audio/*" style={{ display: "none" }}
           onChange={(e) => { if (e.target.files?.[0]) setFile(e.target.files[0]); }} />
       </div>
@@ -283,16 +552,14 @@ function AudioFileView({ onTranscribed }: { onTranscribed: (text: string) => voi
           cursor: file && !loading ? "pointer" : "not-allowed",
         }}
       >
-        {loading ? "Transcribing…" : "Transcribe & Analyse"}
+        {loading ? t.transcribing : t.transcribeAndAnalyze}
       </button>
     </div>
   );
 }
 
-// STT 
-// Browser Web Speech API. Transcript feeds into POST /analyze/text.
-
-function SpeechView({ onReady }: { onReady: (text: string) => void }) {
+function SpeechView({ onReady, lang }: { onReady: (text: string) => void; lang: Language }) {
+  const t = translations[lang];
   const [recording, setRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [error, setError] = useState("");
@@ -307,7 +574,7 @@ function SpeechView({ onReady }: { onReady: (text: string) => void }) {
 
   function toggle() {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) { setError("Speech recognition not supported in this browser."); return; }
+    if (!SR) { setError(t.speechNotSupported); return; }
     if (recording) { recRef.current?.stop(); setRecording(false); return; }
 
     setError("");
@@ -318,7 +585,7 @@ function SpeechView({ onReady }: { onReady: (text: string) => void }) {
       for (let i = 0; i < e.results.length; i++) full += e.results[i][0].transcript;
       setTranscript(full);
     };
-    rec.onerror = () => { setRecording(false); setError("Microphone error — check browser permissions."); };
+    rec.onerror = () => { setRecording(false); setError(t.microphoneError); };
     rec.onend = () => setRecording(false);
     rec.start();
     recRef.current = rec;
@@ -351,10 +618,10 @@ function SpeechView({ onReady }: { onReady: (text: string) => void }) {
         </button>
         <div>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: recording ? "#ef4444" : "#c0c0e0" }}>
-            {recording ? "● Listening…" : "Tap mic to start"}
+            {recording ? t.listening : t.tapMicToStart}
           </p>
           <p style={{ margin: "4px 0 0", fontSize: 11, color: "#555", lineHeight: 1.4 }}>
-            Supports English, Mandarin, Malay &amp; Tamil.<br />Tap again to stop.
+            {t.speechSupport}<br />{t.tapAgainToStop}
           </p>
         </div>
       </div>
@@ -363,16 +630,16 @@ function SpeechView({ onReady }: { onReady: (text: string) => void }) {
 
       {transcript && (
         <div>
-          <label style={{ ...dimText, display: "block", marginBottom: 5 }}>TRANSCRIPT</label>
+          <label style={{ ...dimText, display: "block", marginBottom: 5 }}>{t.transcript}</label>
           <div style={{ ...cardStyle, fontSize: 13, color: "#c0c0e0", lineHeight: 1.6, maxHeight: 110, overflowY: "auto", marginBottom: 10 }}>
             {transcript}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => onReady(transcript)} style={{ ...btnPrimary, flex: 1, width: "auto" }}>
-              Analyze Speech
+              {t.analyzeSpeech}
             </button>
             <button onClick={() => setTranscript("")} style={{ ...btnSecondary, width: "auto", padding: "10px 14px" }}>
-              Clear
+              {t.clear}
             </button>
           </div>
         </div>
@@ -381,13 +648,10 @@ function SpeechView({ onReady }: { onReady: (text: string) => void }) {
   );
 }
 
-// Image Upload
-// Calls POST /analyze-image and sets result directly.
-// TODO: ensure backend POST /analyze-image returns AnalysisResult shape.
-
 interface UploadedImage { file: File; dataUrl: string; }
 
-function ImageUploadView({ onResult }: { onResult: (r: AnalysisResult) => void }) {
+function ImageUploadView({ onResult, lang }: { onResult: (r: AnalysisResult) => void; lang: Language }) {
+  const t = translations[lang];
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -415,7 +679,7 @@ function ImageUploadView({ onResult }: { onResult: (r: AnalysisResult) => void }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       onResult(await res.json());
     } catch {
-      setError("Image analysis failed — check that the backend /analyze-image endpoint is running.");
+      setError(t.imageFailed);
     } finally {
       setLoading(false);
     }
@@ -423,9 +687,9 @@ function ImageUploadView({ onResult }: { onResult: (r: AnalysisResult) => void }
 
   return (
     <div>
-      <label style={{ ...dimText, display: "block", marginBottom: 6 }}>UPLOAD SCREENSHOT(S)</label>
+      <label style={{ ...dimText, display: "block", marginBottom: 6 }}>{t.uploadScreenshots}</label>
       <p style={{ fontSize: 11, color: "#555", marginBottom: 10, lineHeight: 1.5 }}>
-        Check images or forwarded photos for misleading visuals or fake headlines. Up to {MAX_IMAGES} images.
+        {t.imageDesc} {MAX_IMAGES} {t.imageDescImages}
       </p>
 
       {!full && (
@@ -450,9 +714,9 @@ function ImageUploadView({ onResult }: { onResult: (r: AnalysisResult) => void }
             <line x1="12" y1="3" x2="12" y2="15" />
           </svg>
           <p style={{ fontSize: 12, color: dragging ? "#a78bfa" : "#666", margin: 0 }}>
-            {dragging ? "Drop to upload" : "Drag & drop or click to select"}
+            {dragging ? t.dropToUpload : t.dragOrClick}
           </p>
-          <p style={{ fontSize: 10, color: "#444", marginTop: 3 }}>PNG · JPG · WEBP · up to {MAX_IMAGES}</p>
+          <p style={{ fontSize: 10, color: "#444", marginTop: 3 }}>{t.imageFormats} {MAX_IMAGES}</p>
           <input ref={inputRef} type="file" accept="image/*" multiple
             style={{ display: "none" }} onChange={(e) => handleFiles(e.target.files)} />
         </div>
@@ -475,7 +739,7 @@ function ImageUploadView({ onResult }: { onResult: (r: AnalysisResult) => void }
               >✕</button>
             </div>
           ))}
-          {full && <div style={{ fontSize: 10, color: "#555", alignSelf: "center" }}>Max {MAX_IMAGES} reached</div>}
+          {full && <div style={{ fontSize: 10, color: "#555", alignSelf: "center" }}>{t.maxReached} {MAX_IMAGES} {t.maxReachedEnd}</div>}
         </div>
       )}
 
@@ -492,44 +756,53 @@ function ImageUploadView({ onResult }: { onResult: (r: AnalysisResult) => void }
             cursor: loading ? "not-allowed" : "pointer",
           }}
         >
-          {loading ? "Analysing…" : `Analyse ${images.length} image${images.length > 1 ? "s" : ""}`}
+          {loading ? t.analysingImages : `${t.analyzeImages} ${images.length} ${images.length > 1 ? t.images : t.image}`}
         </button>
       )}
     </div>
   );
 }
 
-function LoadingState() {
+function LoadingState({ lang }: { lang: Language }) {
+  const t = translations[lang];
   return (
     <div style={{ color: "#a78bfa", textAlign: "center", marginTop: 60, fontSize: 13 }}>
       <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-      Analyzing…
+      {t.analyzing}
     </div>
   );
 }
 
-function ResultState({ result, onReset }: { result: AnalysisResult; onReset: () => void }) {
+function ResultState({ result, onReset, lang }: { result: AnalysisResult; onReset: () => void; lang: Language }) {
+  const t = translations[lang];
   const riskColor = RISK_COLORS[result.risk_level];
+  
+  const getContradictionText = (level: "low" | "medium" | "high") => {
+    if (level === "low") return t.lowContradiction;
+    if (level === "medium") return t.mediumContradiction;
+    return t.highContradiction;
+  };
+  
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16, background: "#1a1a2e", borderRadius: 8, padding: 12 }}>
         <ScoreRing score={result.credibility_score} />
         <div>
-          <div style={{ fontSize: 11, color: "#888", marginBottom: 4 }}>CREDIBILITY SCORE</div>
+          <div style={{ fontSize: 11, color: "#888", marginBottom: 4 }}>{t.credibilityScore}</div>
           <Badge label={result.risk_level} color={riskColor} />
         </div>
       </div>
 
-      <Section title="Summary">
+      <Section title={t.summary}>
         <p style={{ fontSize: 13, lineHeight: 1.6, color: "#c0c0e0" }}>{result.summary}</p>
       </Section>
 
-      <Section title="Recommendation">
+      <Section title={t.recommendation}>
         <p style={{ fontSize: 13, lineHeight: 1.6, color: "#c0c0e0" }}>{result.recommendation}</p>
       </Section>
 
       {result.key_claims.length > 0 && (
-        <Section title="Key Claims">
+        <Section title={t.keyClaims}>
           <ul style={{ paddingLeft: 16, fontSize: 13, color: "#c0c0e0", lineHeight: 1.7 }}>
             {result.key_claims.map((c, i) => <li key={i}>{c}</li>)}
           </ul>
@@ -537,7 +810,7 @@ function ResultState({ result, onReset }: { result: AnalysisResult; onReset: () 
       )}
 
       {result.bias_detected.length > 0 && (
-        <Section title="Bias Detected">
+        <Section title={t.biasDetected}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {result.bias_detected.map((b) => <Badge key={b} label={b} color="#f59e0b" />)}
           </div>
@@ -545,7 +818,7 @@ function ResultState({ result, onReset }: { result: AnalysisResult; onReset: () 
       )}
 
       {result.cross_references.length > 0 && (
-        <Section title="Cross-References">
+        <Section title={t.crossReferences}>
           {result.cross_references.map((ref, i) => (
             <div key={i} style={{
               marginBottom: 8, fontSize: 12,
@@ -553,26 +826,27 @@ function ResultState({ result, onReset }: { result: AnalysisResult; onReset: () 
               paddingLeft: 8,
             }}>
               <a href={ref.url} target="_blank" rel="noreferrer" style={{ color: "#7c7cff", textDecoration: "none" }}>{ref.source}</a>
-              <span style={{ color: "#666", marginLeft: 6 }}>({ref.contradiction_level} contradiction)</span>
+              <span style={{ color: "#666", marginLeft: 6 }}>({getContradictionText(ref.contradiction_level)})</span>
             </div>
           ))}
         </Section>
       )}
 
       <button onClick={onReset} style={{ ...btnSecondary, marginTop: 8 }}>
-        Analyze another selection
+        {t.analyzeAnother}
       </button>
     </div>
   );
 }
 
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+function ErrorState({ message, onRetry, lang }: { message: string; onRetry: () => void; lang: Language }) {
+  const t = translations[lang];
   return (
     <div style={{ textAlign: "center", marginTop: 40 }}>
       <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
       <p style={{ color: "#ef4444", fontSize: 13, marginBottom: 16 }}>{message}</p>
       <button onClick={onRetry} style={{ padding: "8px 20px", background: "#7c3aed", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13 }}>
-        Back
+        {t.back}
       </button>
     </div>
   );
@@ -582,8 +856,8 @@ export default function App() {
   const [state, setState] = useState<AppState>({ status: "idle" });
   const [mode, setMode] = useState<Mode>("picker");
   const [language, setLanguage] = useState<Language>("en");
+  const t = translations[language];
 
-  // Consume pre-selected text written by background/content script
   useEffect(() => {
     function consume(pending: PendingAnalysis) {
       chrome.storage.session.remove(STORAGE_KEY);
@@ -606,7 +880,6 @@ export default function App() {
     return () => chrome.storage.session.onChanged.removeListener(listener);
   }, []);
 
-  // POST /analyze/text — the existing working endpoint
   async function analyzeText(text: string, sourceUrl = "") {
     setState({ status: "loading" });
     try {
@@ -616,7 +889,7 @@ export default function App() {
         body: JSON.stringify({ text, source_url: sourceUrl, preferred_language: language }),
       });
 
-      const raw = await res.text(); // always read as text first
+      const raw = await res.text();
 
       if (!res.ok) {
         throw new Error(raw || `HTTP ${res.status}`);
@@ -626,7 +899,6 @@ export default function App() {
         const result = JSON.parse(raw);
         setState({ status: "success", result });
       } catch {
-        // Backend returned 200 but not valid JSON — show raw for debugging
         throw new Error(`Backend returned non-JSON response:\n\n${raw.slice(0, 300)}`);
       }
     } catch (err) {
@@ -648,18 +920,18 @@ export default function App() {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
         {showBack && (
-          <button onClick={reset} title="Back" style={{ background: "none", border: "none", cursor: "pointer", color: "#666", padding: 0, fontSize: 18, lineHeight: 1 }}>
+          <button onClick={reset} title={t.back} style={{ background: "none", border: "none", cursor: "pointer", color: "#666", padding: 0, fontSize: 18, lineHeight: 1 }}>
             ←
           </button>
         )}
         <span style={{ fontSize: 22 }}>🔍</span>
-        <span style={{ fontSize: 18, fontWeight: 700, color: "#a78bfa", letterSpacing: "-0.02em" }}>TruthLens</span>
+        <span style={{ fontSize: 18, fontWeight: 700, color: "#a78bfa", letterSpacing: "-0.02em" }}>{t.appName}</span>
       </div>
 
-      {/* Language picker — hidden on results screen */}
+      {/* Language picker */}
       {state.status !== "success" && (
         <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 8 }}>RESPONSE LANGUAGE</label>
+          <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 8 }}>{t.responseLanguage}</label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {LANGUAGES.map((l) => {
               const active = language === l.value;
@@ -685,27 +957,24 @@ export default function App() {
       )}
 
       {/* Loading */}
-      {state.status === "loading" && <LoadingState />}
+      {state.status === "loading" && <LoadingState lang={language} />}
 
       {/* Results */}
-      {state.status === "success" && <ResultState result={state.result} onReset={reset} />}
+      {state.status === "success" && <ResultState result={state.result} onReset={reset} lang={language} />}
 
       {/* Error */}
-      {state.status === "error" && <ErrorState message={state.message} onRetry={reset} />}
+      {state.status === "error" && <ErrorState message={state.message} onRetry={reset} lang={language} />}
 
       {/* Input modes */}
       {(state.status === "idle" || state.status === "loaded") && (
         <>
-          {/* Mode picker: manual open with no pre-selection */}
-          {mode === "picker" && <ModePicker onPick={setMode} />}
+          {mode === "picker" && <ModePicker onPick={setMode} lang={language} />}
 
-          {/* TEXT: working — POST /analyze/text */}
           {mode === "text" && (
             <>
               {state.status === "loaded" ? (
-                // Context-menu pre-selection flow
                 <div>
-                  <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 6 }}>SELECTED TEXT</label>
+                  <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 6 }}>{t.selectedText}</label>
                   <div style={{ ...cardStyle, fontSize: 13, lineHeight: 1.5, color: "#c0c0e0", maxHeight: 140, overflowY: "auto", marginBottom: 8 }}>
                     {state.pending.text}
                   </div>
@@ -713,29 +982,26 @@ export default function App() {
                     {state.pending.sourceUrl}
                   </div>
                   <button onClick={() => analyzeText(state.pending.text, state.pending.sourceUrl)} style={{ ...btnPrimary, marginBottom: 8 }}>
-                    Analyze
+                    {t.analyze}
                   </button>
-                  <button onClick={reset} style={btnSecondary}>Dismiss</button>
+                  <button onClick={reset} style={btnSecondary}>{t.dismiss}</button>
                 </div>
               ) : (
-                <TextInputView onSubmit={(text) => analyzeText(text)} />
+                <TextInputView onSubmit={(text) => analyzeText(text)} lang={language} />
               )}
             </>
           )}
 
-          {/* AUDIO: POST /transcribe → text → POST /analyze/text */}
           {mode === "audio" && (
-            <AudioFileView onTranscribed={(text) => analyzeText(text, "audio://file")} />
+            <AudioFileView onTranscribed={(text) => analyzeText(text, "audio://file")} lang={language} />
           )}
 
-          {/* SPEECH: Web Speech API → text → POST /analyze/text */}
           {mode === "speech" && (
-            <SpeechView onReady={(text) => analyzeText(text, "speech://microphone")} />
+            <SpeechView onReady={(text) => analyzeText(text, "speech://microphone")} lang={language} />
           )}
 
-          {/* IMAGE: POST /analyze-image → result directly */}
           {mode === "image" && (
-            <ImageUploadView onResult={(result) => setState({ status: "success", result })} />
+            <ImageUploadView onResult={(result) => setState({ status: "success", result })} lang={language} />
           )}
         </>
       )}
