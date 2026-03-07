@@ -7,7 +7,7 @@ import { callAiWithSearch } from "../../functions/call-ai";
 
 const AnalysisOutputSchema = t.Object({
   credibility_score: t.Number({ minimum: 0, maximum: 100 }),
-  risk_level: t.Union([t.Literal("safe"), t.Literal("caution"), t.Literal("suspicious")]),
+  risk_level: t.Union([t.Literal("likely accurate"), t.Literal("unverified"), t.Literal("potentially misleading")]),
   classification: WhatsAppClassification,
   summary: t.String(),
   bias_detected: t.Array(t.String()),
@@ -29,7 +29,7 @@ const SYSTEM_PROMPT =
   "Identify the key claims in the text, use exa_search to find sources that confirm or contradict them, " +
   "then return your structured analysis.\n\n" +
   "Use ONLY these enum values exactly as written:\n" +
-  "  • risk_level: 'safe' | 'caution' | 'suspicious'\n" +
+  "  • risk_level: 'likely accurate' | 'unverified' | 'potentially misleading'\n" +
   "  • cross_references[].contradiction_level: 'low' | 'medium' | 'high'\n\n" +
   "For the 'classification' field, choose exactly one of:\n" +
   "  • 'legitimate'  – content is verified accurate\n" +
