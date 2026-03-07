@@ -2,10 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { PendingAnalysis } from "../background/index";
 import { STORAGE_KEY } from "../background/index";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type Language = "en" | "zh" | "ms" | "ta" | "singlish";
-type RiskLevel = "safe" | "caution" | "suspicious";
+type Language = "en" | "zh" | "ms" | "ta";
+type RiskLevel = "likely accurate" | "unverified" | "potentially misleading";
 type Mode = "picker" | "text" | "audio" | "speech" | "image";
 
 interface CrossReference {
@@ -33,15 +31,15 @@ type AppState =
   | { status: "success"; result: AnalysisResult }
   | { status: "error"; message: string };
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// constants
 
 const BACKEND_URL = "http://localhost:3000";
 const MAX_IMAGES = 5;
 
 const RISK_COLORS: Record<RiskLevel, string> = {
-  safe: "#22c55e",
-  caution: "#f59e0b",
-  suspicious: "#ef4444",
+  "likely accurate": "#22c55e",
+  "unverified": "#f59e0b",
+  "potentially misleading": "#ef4444",
 };
 
 const LANGUAGES: { value: Language; label: string }[] = [
@@ -49,10 +47,9 @@ const LANGUAGES: { value: Language; label: string }[] = [
   { value: "zh",       label: "中文"     },
   { value: "ms",       label: "Melayu"   },
   { value: "ta",       label: "தமிழ்"   },
-  { value: "singlish", label: "Singlish" },
 ];
 
-// ─── Style helpers ────────────────────────────────────────────────────────────
+// css style helper
 
 const cardStyle: React.CSSProperties = {
   background: "#1a1a2e", border: "1px solid #3a3a5e",
@@ -79,10 +76,8 @@ function injectStyle(id: string, css: string) {
   document.head.appendChild(el);
 }
 
-// ─── Shared primitives ────────────────────────────────────────────────────────
-
 function ScoreRing({ score }: { score: number }) {
-  const color = score >= 70 ? RISK_COLORS.safe : score >= 40 ? RISK_COLORS.caution : RISK_COLORS.suspicious;
+  const color = score >= 70 ? RISK_COLORS["likely accurate"] : score >= 40 ? RISK_COLORS["unverified"] : RISK_COLORS["potentially misleading"];
   return (
     <div style={{
       width: 72, height: 72, borderRadius: "50%",
@@ -123,7 +118,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-// ─── Mode Picker ──────────────────────────────────────────────────────────────
+// mode pickers
 
 function ModePicker({ onPick }: { onPick: (m: Mode) => void }) {
   const modes: { mode: Mode; icon: string; title: string; desc: string }[] = [
@@ -175,7 +170,7 @@ function ModePicker({ onPick }: { onPick: (m: Mode) => void }) {
   );
 }
 
-// ─── Text Input View ──────────────────────────────────────────────────────────
+// Text Input 
 // Feeds into the existing working POST /analyze/text call.
 
 function TextInputView({ onSubmit }: { onSubmit: (text: string) => void }) {
@@ -212,7 +207,7 @@ function TextInputView({ onSubmit }: { onSubmit: (text: string) => void }) {
   );
 }
 
-// ─── Audio File View ──────────────────────────────────────────────────────────
+// Audio View
 // Uploads audio to POST /transcribe (Whisper backend), then passes the
 // returned text to analyzeText() → POST /analyze/text.
 // TODO: ensure backend POST /transcribe returns { text: string }
@@ -294,9 +289,8 @@ function AudioFileView({ onTranscribed }: { onTranscribed: (text: string) => voi
   );
 }
 
-// ─── Speech (STT) View ────────────────────────────────────────────────────────
-// Uses browser Web Speech API. Transcript feeds into POST /analyze/text.
-// No extra backend needed — works today.
+// STT 
+// Browser Web Speech API. Transcript feeds into POST /analyze/text.
 
 function SpeechView({ onReady }: { onReady: (text: string) => void }) {
   const [recording, setRecording] = useState(false);
@@ -387,7 +381,7 @@ function SpeechView({ onReady }: { onReady: (text: string) => void }) {
   );
 }
 
-// ─── Image Upload View ────────────────────────────────────────────────────────
+// Image Upload
 // Calls POST /analyze-image and sets result directly.
 // TODO: ensure backend POST /analyze-image returns AnalysisResult shape.
 
@@ -505,8 +499,6 @@ function ImageUploadView({ onResult }: { onResult: (r: AnalysisResult) => void }
   );
 }
 
-// ─── Output sub-views (unchanged from working doc6) ───────────────────────────
-
 function LoadingState() {
   return (
     <div style={{ color: "#a78bfa", textAlign: "center", marginTop: 60, fontSize: 13 }}>
@@ -557,7 +549,7 @@ function ResultState({ result, onReset }: { result: AnalysisResult; onReset: () 
           {result.cross_references.map((ref, i) => (
             <div key={i} style={{
               marginBottom: 8, fontSize: 12,
-              borderLeft: `3px solid ${RISK_COLORS[ref.contradiction_level === "high" ? "suspicious" : ref.contradiction_level === "medium" ? "caution" : "safe"]}`,
+              borderLeft: `3px solid ${RISK_COLORS[ref.contradiction_level === "high" ? "potentially misleading" : ref.contradiction_level === "medium" ? "unverified" : "likely accurate"]}`,
               paddingLeft: 8,
             }}>
               <a href={ref.url} target="_blank" rel="noreferrer" style={{ color: "#7c7cff", textDecoration: "none" }}>{ref.source}</a>
@@ -585,8 +577,6 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
     </div>
   );
 }
-
-// ─── Main App ─────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [state, setState] = useState<AppState>({ status: "idle" });
@@ -667,32 +657,32 @@ export default function App() {
       </div>
 
       {/* Language picker — hidden on results screen */}
-{state.status !== "success" && (
-  <div style={{ marginBottom: 16 }}>
-    <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 8 }}>RESPONSE LANGUAGE</label>
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-      {LANGUAGES.map((l) => {
-        const active = language === l.value;
-        return (
-          <button
-            key={l.value}
-            onClick={() => setLanguage(l.value)}
-            style={{
-              padding: "5px 12px", borderRadius: 20,
-              border: active ? "1px solid #7c3aed" : "1px solid #3a3a5e",
-              background: active ? "#7c3aed22" : "transparent",
-              color: active ? "#a78bfa" : "#666",
-              fontSize: 12, fontWeight: active ? 700 : 400,
-              cursor: "pointer", transition: "all 0.15s",
-            }}
-          >
-            {l.label}
-          </button>
-        );
-      })}
-    </div>
-  </div>
-)}
+      {state.status !== "success" && (
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 8 }}>RESPONSE LANGUAGE</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {LANGUAGES.map((l) => {
+              const active = language === l.value;
+              return (
+                <button
+                  key={l.value}
+                  onClick={() => setLanguage(l.value)}
+                  style={{
+                    padding: "5px 12px", borderRadius: 20,
+                    border: active ? "1px solid #7c3aed" : "1px solid #3a3a5e",
+                    background: active ? "#7c3aed22" : "transparent",
+                    color: active ? "#a78bfa" : "#666",
+                    fontSize: 12, fontWeight: active ? 700 : 400,
+                    cursor: "pointer", transition: "all 0.15s",
+                  }}
+                >
+                  {l.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Loading */}
       {state.status === "loading" && <LoadingState />}
