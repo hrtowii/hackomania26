@@ -14,7 +14,6 @@ export const Language = t.Union(
     t.Literal("zh"),
     t.Literal("ms"),
     t.Literal("ta"),
-    t.Literal("singlish"),
   ],
   { default: "en" }
 );
@@ -24,8 +23,7 @@ export const PreferredLanguageField = t.Optional(
     t.Literal("en"),
     t.Literal("zh"),
     t.Literal("ms"),
-    t.Literal("ta"),
-    t.Literal("singlish"),
+    t.Literal("ta")
   ])
 );
 
@@ -41,14 +39,29 @@ export const CrossReference = t.Object({
   url: t.String(),
 });
 
+/**
+ * WhatsApp / message-level classification.
+ * More granular than risk_level — used for the FactCheck panel badge.
+ */
+export const WhatsAppClassification = t.Union([
+  t.Literal("legitimate"),
+  t.Literal("misleading"),
+  t.Literal("scam"),
+  t.Literal("suspicious"),
+  t.Literal("unverified"),
+  t.String(),
+]);
+
 export const AnalysisResponse = t.Object({
   analysis_id: t.String({ description: "UUID of the stored analysis" }),
   credibility_score: t.Number({ minimum: 0, maximum: 100 }),
   risk_level: t.Union([
-    t.Literal("safe"),
-    t.Literal("caution"),
-    t.Literal("suspicious"),
+    t.Literal("likely accurate"),
+    t.Literal("unverified"),
+    t.Literal("potentially misleading"),
   ]),
+  /** Granular FactCheck classification (especially for WhatsApp messages) */
+  classification: t.Optional(WhatsAppClassification),
   summary: t.String(),
   bias_detected: t.Array(t.String()),
   cross_references: t.Array(CrossReference),
@@ -188,27 +201,6 @@ export const HealthResponse = t.Object({
 });
 
 export type THealthResponse = typeof HealthResponse.static;
-
-// ─── POST /scam-detect ──────────────────────────────────────────────────────────
-
-export const ScamDetectBody = t.Object({
-  target_url: t.Optional(t.String({ description: "Destination URL (link href or form action)" })),
-  page_url: t.String({ description: "Current page URL" }),
-  button_text: t.Optional(t.String({ description: "Visible text of the clicked element" })),
-  page_title: t.Optional(t.String({ description: "Document title of the current page" })),
-  preferred_language: PreferredLanguageField,
-});
-
-export type TScamDetectBody = typeof ScamDetectBody.static;
-
-export const ScamDetectResponse = t.Object({
-  safety_score: t.Number({ minimum: 0, maximum: 100, description: "0 = definite scam, 100 = completely safe" }),
-  is_scam: t.Boolean(),
-  summary: t.String({ description: "One-line plain-English summary of the risk" }),
-  risk_level: t.Union([t.Literal("safe"), t.Literal("caution"), t.Literal("suspicious")]),
-});
-
-export type TScamDetectResponse = typeof ScamDetectResponse.static;
 
 // ─── AI chat message types (used by functions/call-ai.ts) ────────────────────
 

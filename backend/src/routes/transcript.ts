@@ -6,6 +6,9 @@ import { writeFile, unlink, mkdir } from "fs/promises";
 import path from "path";
 import { transcribe } from "../../functions/whisper";
 
+const SPEACHES_URL = "http://localhost:8000";
+const WHISPER_MODEL = "Systran/faster-distil-whisper-medium.en";
+
 export const transcriptRoute = new Elysia().post(
   "/transcribe",
   async ({ request }) => {

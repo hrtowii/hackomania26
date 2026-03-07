@@ -251,22 +251,17 @@ interface ScamResult {
 
 async function fetchScamAnalysis(
   targetUrl: string | undefined,
-  buttonText: string | undefined
 ): Promise<ScamResult | null> {
+  const url = targetUrl ?? window.location.href;
   try {
-    const res = await fetch(`${BACKEND_URL}/scam-detect`, {
+    const res = await fetch(`${BACKEND_URL}/analyze/url`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        target_url: targetUrl,
-        page_url: window.location.href,
-        button_text: buttonText,
-        page_title: document.title,
-      }),
+      body: JSON.stringify({ url }),
     });
     if (!res.ok) return null;
-    const data = await res.json() as { safety_score: number; summary: string };
-    return { safetyScore: data.safety_score, summary: data.summary };
+    const data = await res.json() as { credibility_score: number; summary: string };
+    return { safetyScore: data.credibility_score, summary: data.summary };
   } catch {
     return null; // silently fail — don't block the user
   }
@@ -308,6 +303,14 @@ async function handleDocumentClick(e: MouseEvent): Promise<void> {
   ) as HTMLElement | null;
   if (!el) return;
 
+  // On WhatsApp Web, only intercept <a> link clicks inside message containers
+  // (identified by the [data-id] attribute that WhatsApp puts on each message row).
+  // Buttons / form controls belong to WhatsApp's own UI — leave them alone.
+  if (isOnWhatsApp()) {
+    const isMessageLink = el.tagName === "A" && Boolean(el.closest("[data-id]"));
+    if (!isMessageLink) return;
+  }
+
   if (approvedElements.has(el)) {
     approvedElements.delete(el);
     return;
@@ -332,14 +335,10 @@ async function handleDocumentClick(e: MouseEvent): Promise<void> {
   e.preventDefault();
   e.stopImmediatePropagation();
 
-  const buttonText =
-    (el.textContent?.trim().slice(0, 120)) ||
-    ((el as HTMLInputElement).value?.slice(0, 120));
-
   const prevOpacity = el.style.opacity;
   el.style.opacity = "0.5";
   pendingElements.add(el);
-  const result = await fetchScamAnalysis(targetUrl, buttonText);
+  const result = await fetchScamAnalysis(targetUrl);
   pendingElements.delete(el);
   el.style.opacity = prevOpacity;
 
@@ -373,16 +372,17 @@ async function handleDocumentClick(e: MouseEvent): Promise<void> {
 async function handleDocumentSubmit(e: SubmitEvent): Promise<void> {
   if (scamCheckInProgress) return;
   if (isTruthLensUiTarget(e.target)) return;
+  // WhatsApp's form submissions are internal app actions — never intercept them
+  if (isOnWhatsApp()) return;
 
   const form = e.target as HTMLFormElement;
   e.preventDefault();
   e.stopImmediatePropagation();
 
   const targetUrl = form.action || window.location.href;
-  const submitLabel = (e.submitter as HTMLElement | null)?.textContent?.trim().slice(0, 120);
 
   form.style.opacity = "0.5";
-  const result = await fetchScamAnalysis(targetUrl, submitLabel ?? "Submit");
+  const result = await fetchScamAnalysis(targetUrl);
   form.style.opacity = "";
 
   if (!result || result.safetyScore > 100) {
@@ -401,6 +401,125 @@ async function handleDocumentSubmit(e: SubmitEvent): Promise<void> {
   });
 }
 
+// ─── WhatsApp FactCheck Feature ─────────────────────────────────────────────
+
+const WA_HOSTNAME = "web.whatsapp.com";
+const FACTCHECK_BTN_CLASS = "tl-factcheck-btn";
+
+function isOnWhatsApp(): boolean {
+  return window.location.hostname === WA_HOSTNAME;
+}
+
+function getWhatsAppMessageText(msgEl: Element): string {
+  // copyable-text holds the raw message text as textContent
+  const copyable = msgEl.querySelector(".copyable-text");
+  if (copyable?.textContent) return copyable.textContent.trim();
+  // selectable-text is the inner span
+  const selectable = msgEl.querySelector(".selectable-text");
+  if (selectable?.textContent) return selectable.textContent.trim();
+  return msgEl.textContent?.trim() ?? "";
+}
+
+function injectFactCheckBtn(msgEl: Element): void {
+  if (msgEl.querySelector(`.${FACTCHECK_BTN_CLASS}`)) return; // already injected
+
+  const text = getWhatsAppMessageText(msgEl);
+  if (!text || text.length < 10) return;
+
+  const btn = document.createElement("button");
+  btn.className = FACTCHECK_BTN_CLASS;
+  markTruthLensUi(btn);
+  btn.textContent = "\uD83D\uDD0D FactCheck";
+
+  Object.assign(btn.style, {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "3px",
+    margin: "4px 4px 0 0",
+    padding: "2px 9px",
+    fontSize: "11px",
+    fontFamily: "system-ui, sans-serif",
+    fontWeight: "600",
+    color: "#7c3aed",
+    background: "rgba(124,58,237,0.10)",
+    border: "1px solid rgba(124,58,237,0.30)",
+    borderRadius: "12px",
+    cursor: "pointer",
+    lineHeight: "1.7",
+    letterSpacing: "0.01em",
+    transition: "all 0.15s ease",
+    userSelect: "none",
+    whiteSpace: "nowrap",
+  } as Partial<CSSStyleDeclaration>);
+
+  btn.addEventListener("mouseenter", () => {
+    btn.style.background = "rgba(124,58,237,0.22)";
+    btn.style.borderColor = "rgba(124,58,237,0.6)";
+    btn.style.color = "#9f5df7";
+  });
+  btn.addEventListener("mouseleave", () => {
+    btn.style.background = "rgba(124,58,237,0.10)";
+    btn.style.borderColor = "rgba(124,58,237,0.30)";
+    btn.style.color = "#7c3aed";
+  });
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const msg: AnalyzeSelectionMessage = {
+      type: "ANALYZE_SELECTION",
+      text,
+      sourceUrl: window.location.href,
+    };
+    chrome.runtime.sendMessage(msg);
+  });
+
+  // Anchor the button just after the message metadata footer
+  const anchor =
+    msgEl.querySelector("[data-testid=\"msg-meta\"]") ??
+    msgEl.querySelector(".copyable-text")?.parentElement ??
+    msgEl;
+  if (anchor.parentElement) {
+    anchor.parentElement.insertBefore(btn, anchor.nextSibling);
+  } else {
+    anchor.appendChild(btn);
+  }
+}
+
+let waObserver: MutationObserver | null = null;
+
+function setupWhatsAppObserver(): void {
+  if (waObserver) return;
+
+  // Style for active press
+  if (!document.getElementById("tl-wa-style")) {
+    const s = document.createElement("style");
+    s.id = "tl-wa-style";
+    s.textContent = `.${FACTCHECK_BTN_CLASS}:active{transform:scale(0.94)}`;
+    document.head.appendChild(s);
+  }
+
+  const scan = () => document.querySelectorAll("[data-id]").forEach(injectFactCheckBtn);
+
+  waObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (!(node instanceof Element)) continue;
+        if (node.hasAttribute("data-id")) injectFactCheckBtn(node);
+        node.querySelectorAll("[data-id]").forEach(injectFactCheckBtn);
+      }
+    }
+  });
+
+  waObserver.observe(document.body, { childList: true, subtree: true });
+  // Delay initial scan slightly to let WhatsApp finish rendering
+  setTimeout(scan, 800);
+  // Also scan on route changes (WhatsApp navigates without page reload)
+  window.addEventListener("hashchange", scan, { passive: true });
+}
+
+// ─── Global document handlers ─────────────────────────────────────────────────
+
 function setupGlobalDocumentHandlers(): void {
   document.addEventListener("mouseup", handleDocumentMouseUp);
   document.addEventListener("mousedown", handleDocumentMouseDown);
@@ -413,4 +532,5 @@ function setupGlobalDocumentHandlers(): void {
 if (!(globalThis as Record<string, unknown>)[INIT_KEY]) {
   (globalThis as Record<string, unknown>)[INIT_KEY] = true;
   setupGlobalDocumentHandlers();
+  if (isOnWhatsApp()) setupWhatsAppObserver();
 }

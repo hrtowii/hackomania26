@@ -9,8 +9,8 @@ export const openai_client = new OpenAI({
   apiKey: Bun.env.OPENROUTER_API_KEY,
 });
 
-export const DEFAULT_MODEL = "moonshotai/kimi-k2.5";
-
+export const DEFAULT_MODEL = "google/gemini-3.1-flash-lite-preview";
+export const IMG_MODEL = "google/gemini-3.1-flash-lite-preview";
 export async function callAiOneShot(
   prompt: string,
   model: string = DEFAULT_MODEL
@@ -40,7 +40,7 @@ export async function callAiChat(
 export async function callAiImage(
   imageBase64: string,
   prompt: string,
-  model: string = DEFAULT_MODEL
+  model: string = IMG_MODEL
 ): Promise<string> {
   const res = await openai_client.chat.completions.create({
     model,
@@ -97,13 +97,15 @@ export async function callAiWithSearch(
 
   // If no tool call, re-ask with JSON format enforced
   if (first.choices[0].finish_reason !== "tool_calls" || !firstMsg.tool_calls?.length) {
-    console.log("no tool call — retrying with JSON format");
-    const retry = await openai_client.chat.completions.create({
+    if (!responseFormat) return firstMsg.content ?? "";
+
+    const structured = await openai_client.chat.completions.create({
       model,
       messages,
-      ...(responseFormat ? { response_format: responseFormat as unknown as OpenAI.ResponseFormatJSONSchema } : {}),
+      response_format: responseFormat as unknown as OpenAI.ResponseFormatJSONSchema,
     });
-    return retry.choices[0].message.content ?? "";
+
+    return structured.choices[0].message.content ?? "";
   }
 
   const toolCall = firstMsg.tool_calls[0];
@@ -114,7 +116,7 @@ export async function callAiWithSearch(
     num_results?: number;
   };
 
-  const searchResults = await exaSearch(query, num_results ?? 5);
+  const searchResults = await exaSearch(query, num_results ?? 1);
 
   const second = await openai_client.chat.completions.create({
     model,
