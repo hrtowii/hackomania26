@@ -251,22 +251,17 @@ interface ScamResult {
 
 async function fetchScamAnalysis(
   targetUrl: string | undefined,
-  buttonText: string | undefined
 ): Promise<ScamResult | null> {
+  const url = targetUrl ?? window.location.href;
   try {
-    const res = await fetch(`${BACKEND_URL}/scam-detect`, {
+    const res = await fetch(`${BACKEND_URL}/analyze/url`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        target_url: targetUrl,
-        page_url: window.location.href,
-        button_text: buttonText,
-        page_title: document.title,
-      }),
+      body: JSON.stringify({ url }),
     });
     if (!res.ok) return null;
-    const data = await res.json() as { safety_score: number; summary: string };
-    return { safetyScore: data.safety_score, summary: data.summary };
+    const data = await res.json() as { credibility_score: number; summary: string };
+    return { safetyScore: data.credibility_score, summary: data.summary };
   } catch {
     return null; // silently fail — don't block the user
   }
@@ -340,14 +335,10 @@ async function handleDocumentClick(e: MouseEvent): Promise<void> {
   e.preventDefault();
   e.stopImmediatePropagation();
 
-  const buttonText =
-    (el.textContent?.trim().slice(0, 120)) ||
-    ((el as HTMLInputElement).value?.slice(0, 120));
-
   const prevOpacity = el.style.opacity;
   el.style.opacity = "0.5";
   pendingElements.add(el);
-  const result = await fetchScamAnalysis(targetUrl, buttonText);
+  const result = await fetchScamAnalysis(targetUrl);
   pendingElements.delete(el);
   el.style.opacity = prevOpacity;
 
@@ -389,10 +380,9 @@ async function handleDocumentSubmit(e: SubmitEvent): Promise<void> {
   e.stopImmediatePropagation();
 
   const targetUrl = form.action || window.location.href;
-  const submitLabel = (e.submitter as HTMLElement | null)?.textContent?.trim().slice(0, 120);
 
   form.style.opacity = "0.5";
-  const result = await fetchScamAnalysis(targetUrl, submitLabel ?? "Submit");
+  const result = await fetchScamAnalysis(targetUrl);
   form.style.opacity = "";
 
   if (!result || result.safetyScore > 100) {
