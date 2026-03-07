@@ -40,6 +40,7 @@ export const analyzeTextRoute = new Elysia().post(
     const LangChosen = LANGUAGE_NAMES[body.preferred_language ?? "en"] ?? "English";
 
     console.log("[1/4] Request received:", {
+    console.log("[1/4] Request received:", {
       textLength: body.text.length,
       language: LangChosen,
       source: body.source_url || "none",
