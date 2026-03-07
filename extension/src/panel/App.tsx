@@ -109,7 +109,7 @@ export default function App() {
       <Header lang={language} showBack={showBack} onBack={reset} />
       <LanguagePicker language={language} onChange={handleLanguageChange} />
 
-      {state.status === "loading" && <LoadingState lang={language} transcript={pendingTranscript}/>}
+      {state.status === "loading" && <LoadingState lang={language} />}
       {state.status === "success" && <ResultState result={state.result} onReset={reset} lang={language} />}
       {state.status === "error" && <ErrorState message={state.message} onRetry={reset} lang={language} />}
 

@@ -40,7 +40,7 @@ export function AudioFileView({ onTranscribed, lang }: { onTranscribed: (text: s
           if (f) setFile(f);
         }}
         style={{
-          border: `2px dashed ${dragging ? "#7c3aed" : "#3a3a5e"}`,
+          border: 2px dashed ${dragging ? "#7c3aed" : "#3a3a5e"},
           borderRadius: 8, padding: "22px 12px", textAlign: "center",
           cursor: "pointer", background: dragging ? "#7c3aed11" : "#13132a",
           transition: "all 0.15s", marginBottom: 12,

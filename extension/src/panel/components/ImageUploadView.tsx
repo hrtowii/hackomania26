@@ -112,7 +112,7 @@ export function ImageUploadView({ onResult, lang }: { onResult: (r: AnalysisResu
             cursor: loading ? "not-allowed" : "pointer",
           }}
         >
-          {loading ? t.analysingImages : `${t.analyzeImages} ${images.length} ${images.length > 1 ? t.images : t.image}`}
+          {loading ? t.analysingImages : ${t.analyzeImages} ${images.length} ${images.length > 1 ? t.images : t.image}}
         </button>
       )}
     </div>
