@@ -188,3 +188,15 @@ export const HealthResponse = t.Object({
 });
 
 export type THealthResponse = typeof HealthResponse.static;
+
+// ─── AI chat message types (used by functions/call-ai.ts) ────────────────────
+
+export type SystemMessage = { role: "system"; content: string };
+export type UserMessage = { role: "user"; content: string };
+export type AssistantMessage = {
+  role: "assistant";
+  content: string | null;
+  reasoning_details?: unknown;
+};
+
+export type ChatMessage = SystemMessage | UserMessage | AssistantMessage;
