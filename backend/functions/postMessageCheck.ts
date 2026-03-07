@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
-
+import { embedText } from "./embeddings";
 
 export type CrossReference = {
   title: string;
@@ -62,7 +62,6 @@ export async function postMessageCheck(input: MessageCheckInput) {
     text_hash,
 
     credibility_score: input.credibility_score,
-    // risk_level: input.risk_level,
     summary: input.summary,
     recommendation: input.recommendation,
 
@@ -81,47 +80,15 @@ export async function postMessageCheck(input: MessageCheckInput) {
     .single();
 
   if (error) throw new Error(`Supabase insert failed: ${error.message}`);
+  const embedding = await embedText(normalized_text); // number[]
 
+  await supabase
+    .from("message_check_embeddings")
+    .upsert(
+      { message_check_id: data.id, embedding },
+      { onConflict: "message_check_id" }
+    );
+  
   return data;
 }
 
-// ---- quick local test (optional) ----
-async function main() {
-  try {
-    const inserted = await postMessageCheck({
-      content_text:
-        "Forwarded message claims a vaccine contains tracking chips and hospitals are hiding the truth.",
-      credibility_score: 18,
-      // risk_level: "suspicious",
-      summary:
-        "The message makes serious medical claims without reliable evidence and uses fear-based framing.",
-      recommendation:
-        "Do not forward this message without checking official health sources first.",
-      bias_detected: ["fear appeal", "false authority"],
-      cross_references: [
-        {
-          title: "MOH advisory on vaccine misinformation",
-          url: "https://example.com/moh-advisory",
-          source: "MOH",
-          excerpt: "No evidence supports claims that vaccines contain tracking devices.",
-          relation: "contradicts",
-          confidence: 0.96,
-        },
-      ],
-      key_claims: [
-        "Vaccines contain tracking chips",
-        "Hospitals are hiding side effects",
-      ],
-      image_present: false,
-      image_hash: null,
-    });
-
-    console.log("Inserted row:");
-    console.dir(inserted, { depth: null });
-  } catch (error) {
-    console.error("Failed to insert message check:");
-    console.error(error);
-  }
-}
-
-// main();
