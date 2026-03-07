@@ -26,14 +26,30 @@ export function ImageUploadView({ onResult, lang }: { onResult: (r: AnalysisResu
     if (!images.length) return;
     setLoading(true); setError("");
     try {
-      let imagesb64: any = [];
-      for (let image of images) {
-        image.file.arrayBuffer().then((res) => {
-        })
+      const imagesb64: string[] = [];
+
+      for (const image of images) {
+        const buffer = await image.file.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+
+        let binary = "";
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+
+        const base64 = btoa(binary);
+        imagesb64.push(base64);
       }
-      // const res = await fetch(`${BACKEND_URL}/image`, { method: "POST", body: [] });
-      // if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      // onResult(await res.json());
+
+      const res = await fetch(`${BACKEND_URL}/image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          images: imagesb64,
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      onResult(await res.json());
     } catch {
       setError(t.imageFailed);
     } finally {
@@ -112,7 +128,7 @@ export function ImageUploadView({ onResult, lang }: { onResult: (r: AnalysisResu
             cursor: loading ? "not-allowed" : "pointer",
           }}
         >
-          {loading ? t.analysingImages : ${t.analyzeImages} ${images.length} ${images.length > 1 ? t.images : t.image}}
+          {loading ? t.analysingImages : `${t.analyzeImages} ${images.length} ${images.length > 1 ? t.images : t.image}`}
         </button>
       )}
     </div>

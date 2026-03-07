@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+ import { useRef, useState } from "react";
 import { translations, btnPrimary, BACKEND_URL } from "../constants";
 import type { Language } from "../constants";
 
@@ -16,7 +16,7 @@ export function AudioFileView({ onTranscribed, lang }: { onTranscribed: (text: s
     try {
       const form = new FormData();
       form.append("audio", file);
-      const res = await fetch(`${BACKEND_URL}/transcribe`, { method: "POST", body: form });
+      const res = await fetch(`${BACKEND_URL}/transcribe`, { method: "POST", headers: { "X-Language": lang }, body: form });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const { text } = await res.json();
       onTranscribed(text);
@@ -40,7 +40,7 @@ export function AudioFileView({ onTranscribed, lang }: { onTranscribed: (text: s
           if (f) setFile(f);
         }}
         style={{
-          border: 2px dashed ${dragging ? "#7c3aed" : "#3a3a5e"},
+          border: `2px dashed ${dragging ? "#7c3aed" : "#3a3a5e"}`,
           borderRadius: 8, padding: "22px 12px", textAlign: "center",
           cursor: "pointer", background: dragging ? "#7c3aed11" : "#13132a",
           transition: "all 0.15s", marginBottom: 12,
@@ -76,6 +76,12 @@ export function AudioFileView({ onTranscribed, lang }: { onTranscribed: (text: s
       >
         {loading ? t.transcribing : t.transcribeAndAnalyze}
       </button>
+
+      {loading && (
+        <p style={{ fontSize: 10, color: "#888", marginTop: 8, textAlign: "center" }}>
+          First upload may take 2-5 minutes while model downloads...
+        </p>
+      )}
     </div>
   );
 }

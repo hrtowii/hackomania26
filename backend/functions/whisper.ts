@@ -10,7 +10,7 @@ export async function transcribe(audioPath: string, language = "en"): Promise<st
   formData.append("file", blob, "audio.wav");
   formData.append("language", language);
   
-  const response = await fetch("http://localhost:8001/v1/audio/transcriptions", {
+  const response = await fetch("http://localhost:8000/v1/audio/transcriptions", {
     method: "POST",
     body: formData,
   });

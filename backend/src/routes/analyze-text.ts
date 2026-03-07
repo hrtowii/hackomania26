@@ -54,7 +54,10 @@ export const analyzeTextRoute = new Elysia().post(
       `${body.preferred_language ? `Respond in language: ${body.preferred_language}\n` : ""}` +
       `Text:\n\n${body.text}`;
     console.log("🔍 [2/5] Comparing with scams in the database...");
-    const embeddings = await embedText(body.text);
+    function normalizeText(input: string): string {
+      return input.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
+    }
+    const embeddings = await embedText(normalizeText(body.text));
     // ADD embedding search here and return the 5 closest matches (debug)
     console.log("🧠 embedding length:", embeddings.length);
     
@@ -62,7 +65,7 @@ export const analyzeTextRoute = new Elysia().post(
       const { data: matches, error } = await supabase.rpc("match_message_checks", {
         query_embedding: embeddings,
         match_count: 5,
-        min_similarity: 0.01, // tune later (0.82–0.90)
+        min_similarity: 0.90, // tune later (0.82–0.90)
       });
       if (error) {
         console.error("Embedding RPC error:", error.message);
@@ -78,7 +81,7 @@ export const analyzeTextRoute = new Elysia().post(
 
         // Flag “known scam/misinfo” candidates: high similarity + low credibility
         const suspicious = results.filter(
-          (m) => m.similarity >= 0.00 && (m.credibility_score ?? 100) <= 90
+          (m) => m.similarity >= 0.90 && (m.credibility_score ?? 100) <= 90
         );
 
         if (suspicious.length > 0) {
@@ -138,13 +141,6 @@ export const analyzeTextRoute = new Elysia().post(
       throw new Error(`JSON parse failed: ${e}`);
     }
 
-    // Build cross_references deterministically from Exa results.
-    // AI-assigned contradiction_level values are mapped back by URL (best-effort).
-    const aiByUrl = new Map<string, "low" | "medium" | "high">(
-      (output.cross_references ?? [])
-        .filter((ref) => ref.url?.startsWith("http"))
-        .map((ref) => [ref.url, ref.contradiction_level])
-    );
     // Build cross_references deterministically from Exa results.
     // AI-assigned contradiction_level values are mapped back by URL (best-effort).
     const aiByUrl = new Map<string, "low" | "medium" | "high">(

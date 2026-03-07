@@ -13,17 +13,6 @@ function normalizeClassification(value: unknown): "legitimate" | "misleading" | 
   if (text.includes("legit") || text.includes("reliable") || text.includes("safe") || text.includes("informational")) return "legitimate";
   return "unverified";
 }
-import { postMessageCheck } from "../../functions/postMessageCheck";
-
-function normalizeClassification(value: unknown): "legitimate" | "misleading" | "scam" | "suspicious" | "unverified" {
-  const text = String(value ?? "").toLowerCase();
-
-  if (text.includes("scam") || text.includes("fraud") || text.includes("phish")) return "scam";
-  if (text.includes("mislead") || text.includes("false") || text.includes("fake") || text.includes("hoax")) return "misleading";
-  if (text.includes("suspic") || text.includes("dubious") || text.includes("questionable")) return "suspicious";
-  if (text.includes("legit") || text.includes("reliable") || text.includes("safe") || text.includes("informational")) return "legitimate";
-  return "unverified";
-}
 
 const SYSTEM_PROMPT =
   "You are a credibility and scam-detection assistant specialised in Singapore cybercrime patterns. " +
@@ -65,14 +54,12 @@ export const analyzeUrlRoute = new Elysia().post(
       `Page content:\n\n${pageMarkdown.slice(0, 12000)}`; // cap to ~12k chars
 
     const { text: raw, searchResults } = await callAiWithSearch(prompt, {
-    const { text: raw, searchResults } = await callAiWithSearch(prompt, {
       systemPrompt: SYSTEM_PROMPT,
       responseFormat: {
         type: "json_schema",
         json_schema: {
           name: "analysis",
           strict: true,
-          schema: JSON.parse(JSON.stringify(AnalysisAiOutputSchema)),
           schema: JSON.parse(JSON.stringify(AnalysisAiOutputSchema)),
         },
       },
