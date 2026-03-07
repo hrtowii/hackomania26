@@ -856,6 +856,7 @@ export default function App() {
   const [state, setState] = useState<AppState>({ status: "idle" });
   const [mode, setMode] = useState<Mode>("picker");
   const [language, setLanguage] = useState<Language>("en");
+  const [lastInput, setLastInput] = useState<{text: string; sourceUrl: string } | null>(null);
   const t = translations[language];
 
   useEffect(() => {
@@ -881,6 +882,7 @@ export default function App() {
   }, []);
 
   async function analyzeText(text: string, sourceUrl = "") {
+    setLastInput({ text, sourceUrl });
     setState({ status: "loading" });
     try {
       const res = await fetch(`${BACKEND_URL}/analyze/text`, {
@@ -929,32 +931,36 @@ export default function App() {
       </div>
 
       {/* Language picker */}
-      {state.status !== "success" && (
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 8 }}>{t.responseLanguage}</label>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {LANGUAGES.map((l) => {
-              const active = language === l.value;
-              return (
-                <button
-                  key={l.value}
-                  onClick={() => setLanguage(l.value)}
-                  style={{
-                    padding: "5px 12px", borderRadius: 20,
-                    border: active ? "1px solid #7c3aed" : "1px solid #3a3a5e",
-                    background: active ? "#7c3aed22" : "transparent",
-                    color: active ? "#a78bfa" : "#666",
-                    fontSize: 12, fontWeight: active ? 700 : 400,
-                    cursor: "pointer", transition: "all 0.15s",
-                  }}
-                >
-                  {l.label}
-                </button>
-              );
-            })}
-          </div>
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ fontSize: 11, color: "#888", display: "block", marginBottom: 8 }}>{t.responseLanguage}</label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {LANGUAGES.map((l) => {
+            const active = language === l.value;
+            return (
+              <button
+                key={l.value}
+                onClick={() => {
+                  setLanguage(l.value);
+                  // If we have a result, re-analyze in new language
+                  if (state.status === "success" && lastInput) {
+                    analyzeText(lastInput.text, lastInput.sourceUrl);
+                  }
+                }}
+                style={{
+                  padding: "5px 12px", borderRadius: 20,
+                  border: active ? "1px solid #7c3aed" : "1px solid #3a3a5e",
+                  background: active ? "#7c3aed22" : "transparent",
+                  color: active ? "#a78bfa" : "#666",
+                  fontSize: 12, fontWeight: active ? 700 : 400,
+                  cursor: "pointer", transition: "all 0.15s",
+                }}
+              >
+                {l.label}
+              </button>
+            );
+          })}
         </div>
-      )}
+      </div>
 
       {/* Loading */}
       {state.status === "loading" && <LoadingState lang={language} />}

@@ -14,7 +14,6 @@ export const Language = t.Union(
     t.Literal("zh"),
     t.Literal("ms"),
     t.Literal("ta"),
-    t.Literal("singlish"),
   ],
   { default: "en" }
 );
@@ -24,8 +23,7 @@ export const PreferredLanguageField = t.Optional(
     t.Literal("en"),
     t.Literal("zh"),
     t.Literal("ms"),
-    t.Literal("ta"),
-    t.Literal("singlish"),
+    t.Literal("ta")
   ])
 );
 
@@ -45,9 +43,9 @@ export const AnalysisResponse = t.Object({
   analysis_id: t.String({ description: "UUID of the stored analysis" }),
   credibility_score: t.Number({ minimum: 0, maximum: 100 }),
   risk_level: t.Union([
-    t.Literal("safe"),
-    t.Literal("caution"),
-    t.Literal("suspicious"),
+    t.Literal("likely accurate"),
+    t.Literal("unverified"),
+    t.Literal("potentially misleading"),
   ]),
   summary: t.String(),
   bias_detected: t.Array(t.String()),
