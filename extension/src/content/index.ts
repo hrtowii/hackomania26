@@ -21,12 +21,10 @@ export interface AnalyzeSelectionMessage {
   sourceUrl: string;
 }
 
-
 export interface AnalyzeUrlMessage {
   type: "ANALYZE_URL";
   targetUrl?: string;
 }
-
 
 // ─── Button helpers ───────────────────────────────────────────────────────────
 
@@ -145,7 +143,6 @@ let debounceTimer: ReturnType<typeof setTimeout>;
 
 
 // ─── Scam Detection ───────────────────────────────────────────────────────────
-
 
 /** Set to true while we programmatically re-fire a click/submit so the
  *  interceptor ignores it and doesn't trigger a second analysis. */

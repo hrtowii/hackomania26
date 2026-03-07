@@ -4,17 +4,13 @@ import type { TAnalysisAiOutput, TAnalysisResponse } from "../types";
 import { callAiWithSearch } from "../../functions/call-ai";
 import { postMessageCheck } from "../../functions/postMessageCheck";
 
-function normalizeClassification(
-  value: unknown
-): "legitimate" | "misleading" | "scam" | "suspicious" | "unverified" {
+function normalizeClassification(value: unknown): "legitimate" | "misleading" | "scam" | "suspicious" | "unverified" {
   const text = String(value ?? "").toLowerCase();
 
   if (text.includes("scam") || text.includes("fraud") || text.includes("phish")) return "scam";
-  if (text.includes("mislead") || text.includes("false") || text.includes("fake") || text.includes("hoax"))
-    return "misleading";
+  if (text.includes("mislead") || text.includes("false") || text.includes("fake") || text.includes("hoax")) return "misleading";
   if (text.includes("suspic") || text.includes("dubious") || text.includes("questionable")) return "suspicious";
-  if (text.includes("legit") || text.includes("reliable") || text.includes("safe") || text.includes("informational"))
-    return "legitimate";
+  if (text.includes("legit") || text.includes("reliable") || text.includes("safe") || text.includes("informational")) return "legitimate";
   return "unverified";
 }
 
@@ -32,18 +28,20 @@ const SYSTEM_PROMPT =
 export const analyzeUrlRoute = new Elysia().post(
   "/analyze/url",
   async ({ body }) => {
-    console.log("analyze url called", body);
+    console.log("analyze url called");
+    console.log(body);
 
     const jinaRes = await fetch(`https://r.jina.ai/${body.url}`, {
       headers: { Accept: "text/markdown" },
     });
     const pageMarkdown = jinaRes.ok ? await jinaRes.text() : "(page content unavailable)";
+    console.log(pageMarkdown);
 
     const prompt =
       `URL: ${body.url}\n\n` +
       `cross_references[].contradiction_level must be exactly one of: "low", "medium", "high". Never use "none".\n` +
       `For each cross_references entry, set url to the exact URL returned by exa_search.\n\n` +
-      `Page content:\n\n${pageMarkdown.slice(0, 12000)}`;
+      `Page content:\n\n${pageMarkdown.slice(0, 12000)}`; // cap to ~12k chars
 
     const { text: raw, searchResults } = await callAiWithSearch(prompt, {
       systemPrompt: SYSTEM_PROMPT,
@@ -57,6 +55,9 @@ export const analyzeUrlRoute = new Elysia().post(
       },
     });
 
+    console.log(raw);
+    console.log("🔗 Exa results:", searchResults.length);
+
     if (!raw || raw.trim() === "") {
       throw new Error("AI returned empty response");
     }
@@ -69,6 +70,8 @@ export const analyzeUrlRoute = new Elysia().post(
       throw new Error(`JSON parse failed: ${e}`);
     }
 
+    // Build cross_references deterministically from Exa results.
+    // AI-assigned contradiction_level values are mapped back by URL (best-effort).
     const aiByUrl = new Map<string, "low" | "medium" | "high">(
       (output.cross_references ?? [])
         .filter((ref) => ref.url?.startsWith("http"))
@@ -80,12 +83,11 @@ export const analyzeUrlRoute = new Elysia().post(
       try {
         source = new URL(item.url).hostname.replace(/^www\./, "");
       } catch {}
-
       return {
         title: item.title?.trim() || source,
         source,
         url: item.url,
-        contradiction_level: aiByUrl.get(item.url) ?? ("medium" as const),
+        contradiction_level: aiByUrl.get(item.url) ?? "medium" as const,
       };
     });
 
