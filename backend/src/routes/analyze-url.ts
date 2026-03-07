@@ -35,10 +35,17 @@ const SYSTEM_PROMPT =
   "Use ONLY these enum values exactly as written:\n" +
   "  • cross_references[].contradiction_level: 'low' | 'medium' | 'high'\n" +
   "For each cross_references entry, set url to the exact URL returned by exa_search.";
+  "then return your structured analysis.\n\n" +
+  "Use ONLY these enum values exactly as written:\n" +
+  "  • cross_references[].contradiction_level: 'low' | 'medium' | 'high'\n" +
+  "For each cross_references entry, set url to the exact URL returned by exa_search.";
 
 export const analyzeUrlRoute = new Elysia().post(
   "/analyze/url",
   async ({ body }) => {
+    console.log("analyze url called");
+    console.log(body);
+
     console.log("analyze url called");
     console.log(body);
 
@@ -47,13 +54,17 @@ export const analyzeUrlRoute = new Elysia().post(
     });
     const pageMarkdown = jinaRes.ok ? await jinaRes.text() : "(page content unavailable)";
     console.log(pageMarkdown);
+    console.log(pageMarkdown);
 
     const prompt =
       `URL: ${body.url}\n\n` +
       `cross_references[].contradiction_level must be exactly one of: "low", "medium", "high". Never use "none".\n` +
       `For each cross_references entry, set url to the exact URL returned by exa_search.\n\n` +
+      `cross_references[].contradiction_level must be exactly one of: "low", "medium", "high". Never use "none".\n` +
+      `For each cross_references entry, set url to the exact URL returned by exa_search.\n\n` +
       `Page content:\n\n${pageMarkdown.slice(0, 12000)}`; // cap to ~12k chars
 
+    const { text: raw, searchResults } = await callAiWithSearch(prompt, {
     const { text: raw, searchResults } = await callAiWithSearch(prompt, {
       systemPrompt: SYSTEM_PROMPT,
       responseFormat: {
@@ -61,6 +72,7 @@ export const analyzeUrlRoute = new Elysia().post(
         json_schema: {
           name: "analysis",
           strict: true,
+          schema: JSON.parse(JSON.stringify(AnalysisAiOutputSchema)),
           schema: JSON.parse(JSON.stringify(AnalysisAiOutputSchema)),
         },
       },
@@ -81,6 +93,8 @@ export const analyzeUrlRoute = new Elysia().post(
       throw new Error(`JSON parse failed: ${e}`);
     }
 
+    // Build cross_references deterministically from Exa results.
+    // AI-assigned contradiction_level values are mapped back by URL (best-effort).
     const aiByUrl = new Map<string, "low" | "medium" | "high">(
       (output.cross_references ?? [])
         .filter((ref) => ref.url?.startsWith("http"))
@@ -91,7 +105,7 @@ export const analyzeUrlRoute = new Elysia().post(
       let source = "External source";
       try {
         source = new URL(item.url).hostname.replace(/^www\./, "");
-      } catch { }
+      } catch {}
       return {
         title: item.title?.trim() || source,
         source,
