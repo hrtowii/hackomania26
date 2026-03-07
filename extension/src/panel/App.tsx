@@ -22,6 +22,7 @@ export default function App() {
   const [mode, setMode] = useState<Mode>("picker");
   const [language, setLanguage] = useState<Language>("en");
   const [lastInput, setLastInput] = useState<{ text: string; sourceUrl: string } | null>(null);
+  const [pendingTranscript, setPendingTranscript] = useState<string>("");
   const t = translations[language];
 
   useEffect(() => {
@@ -73,10 +74,11 @@ export default function App() {
     }
   }
 
-  function reset() {
+    function reset() {
     chrome.storage.session.remove(STORAGE_KEY);
     setState({ status: "idle" });
     setMode("picker");
+    setPendingTranscript("");
   }
 
   function handleLanguageChange(lang: Language) {
@@ -93,7 +95,7 @@ export default function App() {
       <Header lang={language} showBack={showBack} onBack={reset} />
       <LanguagePicker language={language} onChange={handleLanguageChange} />
 
-      {state.status === "loading" && <LoadingState lang={language} />}
+      {state.status === "loading" && <LoadingState lang={language} transcript={pendingTranscript}/>}
       {state.status === "success" && <ResultState result={state.result} onReset={reset} lang={language} />}
       {state.status === "error" && <ErrorState message={state.message} onRetry={reset} lang={language} />}
 
@@ -124,7 +126,10 @@ export default function App() {
           )}
 
           {mode === "audio" && (
-            <AudioFileView onTranscribed={(text) => analyzeText(text, "audio://file")} lang={language} />
+            <AudioFileView onTranscribed={(text) => { setPendingTranscript(text); analyzeText(text, "audio://file");
+              }}
+              lang={language}
+            />
           )}
 
           {mode === "speech" && (
