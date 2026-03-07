@@ -1,10 +1,37 @@
 {
-  "name": "Hello Extensions",
-  "description": "Base Level Extension",
-  "version": "1.0",
+  "name": "TruthLens",
+  "description": "AI-powered misinformation and credibility checker for Singapore's multilingual web",
+  "version": "0.1.0",
   "manifest_version": 3,
   "action": {
     "default_popup": "index.html",
-    "default_icon": "truthlens.png"
+    "default_icon": {
+      "128": "truthlens.png"
+    }
+  },
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/index.ts"],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "permissions": [
+    "activeTab",
+    "storage",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "icons": {
+    "128": "truthlens.png"
   }
 }

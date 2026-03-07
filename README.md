@@ -1,5 +1,16 @@
 # hackomania26
 
+## build extension
+
+bun i
+bun run build
+load unpacked dist in the directory
+
+## build backend
+
+bun i
+bun dev
+
 ## chrome extension that connects to backend for popup and ai spam detection
 
 ## challenge statement
