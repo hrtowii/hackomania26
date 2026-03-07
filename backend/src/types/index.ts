@@ -41,6 +41,18 @@ export const CrossReference = t.Object({
   url: t.String(),
 });
 
+/**
+ * WhatsApp / message-level classification.
+ * More granular than risk_level — used for the FactCheck panel badge.
+ */
+export const WhatsAppClassification = t.Union([
+  t.Literal("legitimate"),
+  t.Literal("misleading"),
+  t.Literal("scam"),
+  t.Literal("suspicious"),
+  t.Literal("unverified"),
+]);
+
 export const AnalysisResponse = t.Object({
   analysis_id: t.String({ description: "UUID of the stored analysis" }),
   credibility_score: t.Number({ minimum: 0, maximum: 100 }),
@@ -49,6 +61,8 @@ export const AnalysisResponse = t.Object({
     t.Literal("caution"),
     t.Literal("suspicious"),
   ]),
+  /** Granular FactCheck classification (especially for WhatsApp messages) */
+  classification: t.Optional(WhatsAppClassification),
   summary: t.String(),
   bias_detected: t.Array(t.String()),
   cross_references: t.Array(CrossReference),
