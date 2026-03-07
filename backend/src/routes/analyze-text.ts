@@ -108,7 +108,8 @@ export const analyzeTextRoute = new Elysia().post(
     console.log("🔍 [3/5] Calling AI with web search...");
     const start = Date.now();
 
-    const raw = await callAiWithSearch(prompt, {
+
+    const { text: raw, searchResults } = await callAiWithSearch(prompt, {
       systemPrompt: SYSTEM_PROMPT,
       responseFormat: {
         type: "json_schema",
@@ -120,6 +121,9 @@ export const analyzeTextRoute = new Elysia().post(
       },
     });
 
+    console.log(`✅ [4/5] AI responded in ${((Date.now() - start) / 1000).toFixed(1)}s`);
+    console.log("📄 Raw length:", raw?.length ?? 0);
+    console.log("📄 Raw preview:", raw?.slice(0, 200));
     console.log(`[3/4] AI responded in ${((Date.now() - start) / 1000).toFixed(1)}s`);
     // console.log("📄 Raw length:", raw?.length ?? 0);
     // console.log("📄 Raw preview:", raw?.slice(0, 200));
