@@ -8,6 +8,7 @@ import { ttsRoute } from "./routes/tts";
 import { feedbackRoute } from "./routes/feedback";
 import { healthRoute } from "./routes/health";
 import { languagesRoute } from "./routes/languages";
+import { scamDetectRoute } from "./routes/scam-detect";
 
 const app = new Elysia()
   .use(cors())
@@ -19,6 +20,7 @@ const app = new Elysia()
   .use(transcriptRoute)
   .use(ttsRoute)
   .use(feedbackRoute)
+  .use(scamDetectRoute)
   .listen(3000);
 
 console.log(
