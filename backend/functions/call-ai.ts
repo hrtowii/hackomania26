@@ -1,5 +1,6 @@
 import { OpenAI } from "openai";
 import type { ChatMessage } from "../src/types";
+import { exaSearch } from "./search";
 
 export { type ChatMessage };
 
@@ -8,8 +9,7 @@ export const openai_client = new OpenAI({
   apiKey: Bun.env.OPENROUTER_API_KEY,
 });
 
-export const DEFAULT_MODEL = "inception/mercury-2";
-
+export const DEFAULT_MODEL = "moonshotai/kimi-k2.5";
 
 export async function callAiOneShot(
   prompt: string,
@@ -22,27 +22,20 @@ export async function callAiOneShot(
   return res.choices[0].message.content ?? "";
 }
 
-
 export async function callAiChat(
   pastMessages: ChatMessage[],
   currentMessage: string,
   model: string = DEFAULT_MODEL
 ): Promise<string> {
-  const messages: ChatMessage[] = [
-    ...pastMessages,
-    { role: "user", content: currentMessage },
-  ];
-
   const res = await openai_client.chat.completions.create({
     model,
-    messages: messages as Parameters<
-      typeof openai_client.chat.completions.create
-    >[0]["messages"],
+    messages: [
+      ...(pastMessages as OpenAI.Chat.Completions.ChatCompletionMessageParam[]),
+      { role: "user", content: currentMessage },
+    ],
   });
-
   return res.choices[0].message.content ?? "";
 }
-
 
 export async function callAiImage(
   imageBase64: string,
@@ -55,14 +48,78 @@ export async function callAiImage(
       {
         role: "user",
         content: [
-          {
-            type: "image_url",
-            image_url: { url: `data:image/jpeg;base64,${imageBase64}` },
-          },
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
           { type: "text", text: prompt },
         ],
       },
     ],
   });
   return res.choices[0].message.content ?? "";
+}
+
+const EXA_SEARCH_TOOL: OpenAI.Chat.Completions.ChatCompletionTool = {
+  type: "function",
+  function: {
+    name: "exa_search",
+    description: "Search the web for up-to-date information.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        num_results: { type: "number" },
+      },
+      required: ["query"],
+    },
+  },
+};
+
+/**
+ * Chat call with Exa web search tool. Optionally pass a JSON Schema object
+ * as `responseFormat` to get structured output on the final answer.
+ */
+export async function callAiWithSearch(
+  prompt: string,
+  model: string = DEFAULT_MODEL,
+  responseFormat?: Record<string, unknown>
+): Promise<string> {
+  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    { role: "user", content: prompt },
+  ];
+
+  const first = await openai_client.chat.completions.create({
+    model,
+    messages,
+    tools: [EXA_SEARCH_TOOL],
+    tool_choice: "auto",
+  });
+
+  const firstMsg = first.choices[0].message;
+
+  // No tool call — return answer directly
+  if (first.choices[0].finish_reason !== "tool_calls" || !firstMsg.tool_calls?.length) {
+    console.log("no tool call")
+    return firstMsg.content ?? "";
+  }
+
+  const toolCall = firstMsg.tool_calls[0];
+  if (toolCall.type !== "function") return firstMsg.content ?? "";
+
+  const { query, num_results } = JSON.parse(toolCall.function.arguments) as {
+    query: string;
+    num_results?: number;
+  };
+
+  const searchResults = await exaSearch(query, num_results ?? 5);
+
+  const second = await openai_client.chat.completions.create({
+    model,
+    messages: [
+      ...messages,
+      firstMsg,
+      { role: "tool", tool_call_id: toolCall.id, content: JSON.stringify(searchResults) },
+    ],
+    ...(responseFormat ? { response_format: responseFormat as unknown as OpenAI.ResponseFormatJSONSchema } : {}),
+  });
+
+  return second.choices[0].message.content ?? "";
 }

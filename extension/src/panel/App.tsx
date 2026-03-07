@@ -138,7 +138,7 @@ export default function App() {
   async function analyze(pending: PendingAnalysis) {
     setState({ status: "loading" });
     try {
-      const res = await fetch(`${BACKEND_URL}/summary`, {
+      const res = await fetch(`${BACKEND_URL}/analyze/text`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -424,7 +424,7 @@ function ResultState({
                     : ref.contradiction_level === "medium"
                       ? "caution"
                       : "safe"
-                  ]
+                ]
                   }`,
                 paddingLeft: 8,
               }}
