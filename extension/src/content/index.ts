@@ -421,79 +421,85 @@ function isOnWhatsApp(): boolean {
 }
 
 function getWhatsAppMessageText(msgEl: Element): string {
-  // copyable-text holds the raw message text as textContent
   const copyable = msgEl.querySelector(".copyable-text");
   if (copyable?.textContent) return copyable.textContent.trim();
-  // selectable-text is the inner span
   const selectable = msgEl.querySelector(".selectable-text");
   if (selectable?.textContent) return selectable.textContent.trim();
   return msgEl.textContent?.trim() ?? "";
 }
 
-function injectFactCheckBtn(msgEl: Element): void {
-  if (msgEl.querySelector(`.${FACTCHECK_BTN_CLASS}`)) return; // already injected
+/**
+ * Inject the FactCheck button into WhatsApp's action items row — the flex row
+ * that holds the 😊 React button. Our button lives there as a peer icon so it
+ * appears and disappears together with the rest of the hover actions.
+ *
+ * DOM path (from actual WhatsApp HTML):
+ *   [data-id]
+ *     …
+ *     div._amj_                           ← reaction container (shown on hover)
+ *       div.x1djpfga                      ← flex items row  ← INSERT HERE
+ *         div > div[aria-label="React"]   ← emoji react button
+ *
+ * WhatsApp adds [aria-label="React"] lazily on hover and REMOVES it on unhover.
+ * We mirror that lifecycle: inject when React appears, remove when React leaves.
+ */
 
+// Maps each React button element → our injected wrapper div, for cleanup
+const reactToWrapper = new WeakMap<Element, Element>();
+
+function injectFactCheckBtn(msgEl: Element): void {
   const text = getWhatsAppMessageText(msgEl);
   if (!text || text.length < 10) return;
 
+  const reactBtn = msgEl.querySelector('[aria-label="React"]');
+  if (!reactBtn) return;
+  if (reactToWrapper.has(reactBtn)) return; // already injected for this instance
+
+  const reactWrapper = reactBtn.parentElement;        // <div> wrapping the React button
+  const itemsRow = reactWrapper?.parentElement;        // the flex row of action items
+  if (!itemsRow) return;
+
+  // Build a 32 × 32 circle icon that matches WhatsApp's own action button style
   const btn = document.createElement("button");
   btn.className = FACTCHECK_BTN_CLASS;
   markTruthLensUi(btn);
-  btn.textContent = "\uD83D\uDD0D FactCheck";
+  btn.title = "FactCheck this message";
+  btn.innerHTML = `<span style="font-size:16px;line-height:1;pointer-events:none;">🔍</span>`;
 
   Object.assign(btn.style, {
     display: "inline-flex",
     alignItems: "center",
-    gap: "3px",
-    margin: "4px 4px 0 0",
-    padding: "2px 9px",
-    fontSize: "11px",
-    fontFamily: "system-ui, sans-serif",
-    fontWeight: "600",
-    color: "#7c3aed",
-    background: "rgba(124,58,237,0.10)",
-    border: "1px solid rgba(124,58,237,0.30)",
-    borderRadius: "12px",
+    justifyContent: "center",
+    width: "32px",
+    height: "32px",
+    borderRadius: "50%",
+    border: "none",
+    background: "transparent",
     cursor: "pointer",
-    lineHeight: "1.7",
-    letterSpacing: "0.01em",
-    transition: "all 0.15s ease",
-    userSelect: "none",
-    whiteSpace: "nowrap",
+    padding: "0",
+    flexShrink: "0",
+    transition: "background 0.12s ease",
   } as Partial<CSSStyleDeclaration>);
 
-  btn.addEventListener("mouseenter", () => {
-    btn.style.background = "rgba(124,58,237,0.22)";
-    btn.style.borderColor = "rgba(124,58,237,0.6)";
-    btn.style.color = "#9f5df7";
-  });
-  btn.addEventListener("mouseleave", () => {
-    btn.style.background = "rgba(124,58,237,0.10)";
-    btn.style.borderColor = "rgba(124,58,237,0.30)";
-    btn.style.color = "#7c3aed";
-  });
-
+  btn.addEventListener("mouseenter", () => { btn.style.background = "rgba(0,0,0,0.08)"; });
+  btn.addEventListener("mouseleave", () => { btn.style.background = "transparent"; });
   btn.addEventListener("click", (e) => {
     e.stopPropagation();
     e.preventDefault();
-    const msg: AnalyzeSelectionMessage = {
+    chrome.runtime.sendMessage({
       type: "ANALYZE_SELECTION",
       text,
       sourceUrl: window.location.href,
-    };
-    chrome.runtime.sendMessage(msg);
+    } satisfies AnalyzeSelectionMessage);
   });
 
-  // Anchor the button just after the message metadata footer
-  const anchor =
-    msgEl.querySelector("[data-testid=\"msg-meta\"]") ??
-    msgEl.querySelector(".copyable-text")?.parentElement ??
-    msgEl;
-  if (anchor.parentElement) {
-    anchor.parentElement.insertBefore(btn, anchor.nextSibling);
-  } else {
-    anchor.appendChild(btn);
-  }
+  // Wrap in a <div> like WhatsApp does for each action item, insert before React
+  const itemWrapper = document.createElement("div");
+  itemWrapper.appendChild(btn);
+  itemsRow.insertBefore(itemWrapper, reactWrapper);
+
+  // Track so we can remove our wrapper when WhatsApp removes the React button
+  reactToWrapper.set(reactBtn, itemWrapper);
 }
 
 let waObserver: MutationObserver | null = null;
@@ -501,11 +507,10 @@ let waObserver: MutationObserver | null = null;
 function setupWhatsAppObserver(): void {
   if (waObserver) return;
 
-  // Style for active press
   if (!document.getElementById("tl-wa-style")) {
     const s = document.createElement("style");
     s.id = "tl-wa-style";
-    s.textContent = `.${FACTCHECK_BTN_CLASS}:active{transform:scale(0.94)}`;
+    s.textContent = `.${FACTCHECK_BTN_CLASS}:active { transform: scale(0.88); }`;
     document.head.appendChild(s);
   }
 
@@ -513,19 +518,44 @@ function setupWhatsAppObserver(): void {
 
   waObserver = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
+      // ── Nodes added ──────────────────────────────────────────────────────
       for (const node of mutation.addedNodes) {
         if (!(node instanceof Element)) continue;
+
+        // New message row
         if (node.hasAttribute("data-id")) injectFactCheckBtn(node);
         node.querySelectorAll("[data-id]").forEach(injectFactCheckBtn);
+
+        // React button rendered lazily → inject into its row
+        const added: Element[] = [];
+        if (node.matches('[aria-label="React"]')) added.push(node);
+        node.querySelectorAll('[aria-label="React"]').forEach((b) => added.push(b));
+        for (const rb of added) {
+          const row = rb.closest("[data-id]");
+          if (row) injectFactCheckBtn(row);
+        }
+      }
+
+      // ── Nodes removed ─────────────────────────────────────────────────────
+      // WhatsApp removes [aria-label="React"] on unhover — remove our button too
+      for (const node of mutation.removedNodes) {
+        if (!(node instanceof Element)) continue;
+
+        const removed: Element[] = [];
+        if (node.matches('[aria-label="React"]')) removed.push(node);
+        node.querySelectorAll('[aria-label="React"]').forEach((b) => removed.push(b));
+        for (const rb of removed) {
+          const wrapper = reactToWrapper.get(rb);
+          wrapper?.remove();
+          reactToWrapper.delete(rb);
+        }
       }
     }
   });
 
   waObserver.observe(document.body, { childList: true, subtree: true });
-  // Delay initial scan slightly to let WhatsApp finish rendering
   setTimeout(scan, 800);
-  // Also scan on route changes (WhatsApp navigates without page reload)
-  window.addEventListener("hashchange", scan, { passive: true });
+  window.addEventListener("hashchange", () => setTimeout(scan, 400), { passive: true });
 }
 
 // ─── Global document handlers ─────────────────────────────────────────────────
