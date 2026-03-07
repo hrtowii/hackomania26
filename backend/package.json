@@ -8,6 +8,7 @@
   "dependencies": {
     "@elysiajs/cors": "^1.4.1",
     "elysia": "latest",
+    "exa-js": "^2.7.0",
     "openai": "^6.27.0"
   },
   "devDependencies": {
