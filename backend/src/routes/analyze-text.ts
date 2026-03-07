@@ -53,8 +53,55 @@ export const analyzeTextRoute = new Elysia().post(
       `${body.source_url ? `Source URL: ${body.source_url}\n` : ""}` +
       `${body.preferred_language ? `Respond in language: ${body.preferred_language}\n` : ""}` +
       `Text:\n\n${body.text}`;
+    console.log("🔍 [2/5] Comparing with scams in the database...");
+    function normalizeText(input: string): string {
+      return input.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
+    }
+    const embeddings = await embedText(normalizeText(body.text));
+    // ADD embedding search here and return the 5 closest matches (debug)
+    console.log("🧠 embedding length:", embeddings.length);
+    
+    try {
+      
+      const { data: matches, error } = await supabase.rpc("match_message_checks", {
+        query_embedding: embeddings,
+        match_count: 5,
+        min_similarity: 0.85, // tune later (0.82–0.90)
+      });
+      if (error) {
+        console.error("Embedding RPC error:", error.message);
+      } else {
+        console.log("✅ matches count:", Array.isArray(matches) ? matches.length : 0);
+        console.log("✅ matches raw:", JSON.stringify(matches, null, 2));
+        const results = (matches ?? []) as Array<{
+          message_check_id: string;
+          similarity: number;
+          credibility_score: number;
+          summary: string;
+          recommendation: string;
+          content_text: string;
+        }>;
 
-    console.log("[2/4] Calling AI with web search...");
+        // Flag “known scam/misinfo” candidates: high similarity + low credibility
+        const suspicious = results.filter(
+          (m) => m.similarity >= 0.85 && (m.credibility_score ?? 100) <= 70
+        );
+
+        if (suspicious.length > 0) {
+          const best = suspicious[0];
+
+          console.log("🚨 Similar scam/misinfo found in DB:", {
+            id: best.message_check_id,
+            similarity: best.similarity,
+            credibility: best.credibility_score,
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Embedding search failed:", e);
+    }
+
+    console.log("🔍 [3/5] Calling AI with web search...");
     const start = Date.now();
 
     const { text: raw, searchResults } = await callAiWithSearch(prompt, {
@@ -69,10 +116,6 @@ export const analyzeTextRoute = new Elysia().post(
           },
         });
 
-    console.log(`[3/4] AI responded in ${((Date.now() - start) / 1000).toFixed(1)}s`);
-    // console.log("📄 Raw length:", raw?.length ?? 0);
-    // console.log("📄 Raw preview:", raw?.slice(0, 200));
-    // console.log("🔗 Exa results:", searchResults.length);
     console.log(`✅ [4/5] AI responded in ${((Date.now() - start) / 1000).toFixed(1)}s`);
 /*     console.log("📄 Raw length:", raw?.length ?? 0);
     console.log("📄 Raw preview:", raw?.slice(0, 200));
