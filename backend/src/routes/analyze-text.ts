@@ -6,6 +6,7 @@ import { embedText } from "../../functions/embeddings";
 import {randomUUID} from "crypto"
  import { postMessageCheck } from "../../functions/postMessageCheck";
 import { createClient } from "@supabase/supabase-js";
+import { randomUUID } from "crypto";
 
 const supabase = createClient(
   Bun.env.SUPABASE_URL!,
@@ -55,19 +56,25 @@ export const analyzeTextRoute = new Elysia().post(
       `${body.preferred_language ? `Respond in language: ${body.preferred_language}\n` : ""}` +
       `Text:\n\n${body.text}`;
     console.log("🔍 [2/5] Comparing with scams in the database...");
-    const embeddings = await embedText(body.text);
+    function normalizeText(input: string): string {
+      return input.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
+    }
+    const embeddings = await embedText(normalizeText(body.text));
     // ADD embedding search here and return the 5 closest matches (debug)
     console.log("🧠 embedding length:", embeddings.length);
     
     try {
+      
       const { data: matches, error } = await supabase.rpc("match_message_checks", {
         query_embedding: embeddings,
         match_count: 5,
-        min_similarity: 0.01, // tune later (0.82–0.90)
+        min_similarity: 0.85, // tune later (0.82–0.90)
       });
       if (error) {
         console.error("Embedding RPC error:", error.message);
       } else {
+        console.log("✅ matches count:", Array.isArray(matches) ? matches.length : 0);
+        console.log("✅ matches raw:", JSON.stringify(matches, null, 2));
         const results = (matches ?? []) as Array<{
           message_check_id: string;
           similarity: number;
@@ -79,7 +86,7 @@ export const analyzeTextRoute = new Elysia().post(
 
         // Flag “known scam/misinfo” candidates: high similarity + low credibility
         const suspicious = results.filter(
-          (m) => m.similarity >= 0.00 && (m.credibility_score ?? 100) <= 90
+          (m) => m.similarity >= 0.85 && (m.credibility_score ?? 100) <= 70
         );
 
         if (suspicious.length > 0) {
@@ -90,17 +97,6 @@ export const analyzeTextRoute = new Elysia().post(
             similarity: best.similarity,
             credibility: best.credibility_score,
           });
-
-          // Return early: reuse stored analysis (skip AI)
-          return {
-            credibility_score: best.credibility_score,
-            summary: best.summary,
-            recommendation: best.recommendation,
-            bias_detected: [], // optional: you can store these in DB and return them too
-            key_claims: [],
-            cross_references: [],
-            analysis_id: randomUUID(),
-          } satisfies TAnalysisResponse;
         }
       }
     } catch (e) {
@@ -122,10 +118,10 @@ export const analyzeTextRoute = new Elysia().post(
       },
     });
 
-    console.log(`[4/5] AI responded in ${((Date.now() - start) / 1000).toFixed(1)}s`);
-    // console.log("📄 Raw length:", raw?.length ?? 0);
-    // console.log("📄 Raw preview:", raw?.slice(0, 200));
-    // console.log("🔗 Exa results:", searchResults.length);
+    console.log(`✅ [4/5] AI responded in ${((Date.now() - start) / 1000).toFixed(1)}s`);
+    console.log("📄 Raw length:", raw?.length ?? 0);
+    console.log("📄 Raw preview:", raw?.slice(0, 200));
+    console.log("🔗 Exa results:", searchResults.length);
 
     if (!raw || raw.trim() === "") {
       throw new Error("AI returned empty response");
