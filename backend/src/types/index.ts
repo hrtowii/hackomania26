@@ -7,7 +7,6 @@
 
 import { t } from "elysia";
 
-// ─── Common ───────────────────────────────────────────────────────────────────
 
 export const Language = t.Union(
   [
@@ -30,7 +29,7 @@ export const PreferredLanguageField = t.Optional(
   ])
 );
 
-// ─── Analysis response (shared by /analyze, /image, /summary) ────────────────
+// ─── Analysis response (shared by /analyze/url, /analyze/text, /image) ──────
 
 export const CrossReference = t.Object({
   source: t.String(),
@@ -60,15 +59,15 @@ export const AnalysisResponse = t.Object({
 
 export type TAnalysisResponse = typeof AnalysisResponse.static;
 
-// ─── POST /analyze ────────────────────────────────────────────────────────────
+// ─── POST /analyze/url ────────────────────────────────────────────────────────
 
-export const AnalyzeBody = t.Object({
+export const AnalyzeUrlBody = t.Object({
   url: t.String({ description: "The URL to analyze" }),
   user_id: t.Optional(t.String()),
   preferred_language: PreferredLanguageField,
 });
 
-export type TAnalyzeBody = typeof AnalyzeBody.static;
+export type TAnalyzeUrlBody = typeof AnalyzeUrlBody.static;
 
 // ─── POST /image ──────────────────────────────────────────────────────────────
 
@@ -80,15 +79,15 @@ export const ImageBody = t.Object({
 
 export type TImageBody = typeof ImageBody.static;
 
-// ─── POST /summary ────────────────────────────────────────────────────────────
+// ─── POST /analyze/text ───────────────────────────────────────────────────────
 
-export const SummaryBody = t.Object({
+export const AnalyzeTextBody = t.Object({
   text: t.String({ minLength: 1, description: "Highlighted text content" }),
   source_url: t.Optional(t.String()),
   preferred_language: PreferredLanguageField,
 });
 
-export type TSummaryBody = typeof SummaryBody.static;
+export type TAnalyzeTextBody = typeof AnalyzeTextBody.static;
 
 // ─── POST /transcript ─────────────────────────────────────────────────────────
 

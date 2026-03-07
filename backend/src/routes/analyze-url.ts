@@ -1,12 +1,12 @@
 import { Elysia } from "elysia";
-import { AnalyzeBody, AnalysisResponse } from "../types";
+import { AnalyzeUrlBody, AnalysisResponse } from "../types";
 import { randomUUID } from "crypto";
 
-export const analyzeRoute = new Elysia().post(
-  "/analyze",
+export const analyzeUrlRoute = new Elysia().post(
+  "/analyze/url",
   async ({ body }) => {
     // TODO: implement actual URL fetch + AI analysis
-    console.log("analyse called")
+    console.log("analyze/url called");
     const stub: typeof AnalysisResponse.static = {
       analysis_id: randomUUID(),
       credibility_score: 50,
@@ -20,7 +20,7 @@ export const analyzeRoute = new Elysia().post(
     return stub;
   },
   {
-    body: AnalyzeBody,
+    body: AnalyzeUrlBody,
     response: AnalysisResponse,
     detail: {
       summary: "Analyze a URL for credibility and misinformation",

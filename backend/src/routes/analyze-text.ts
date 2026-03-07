@@ -1,11 +1,12 @@
 import { Elysia } from "elysia";
-import { SummaryBody, AnalysisResponse } from "../types";
+import { AnalyzeTextBody, AnalysisResponse } from "../types";
 import { randomUUID } from "crypto";
 
-export const summaryRoute = new Elysia().post(
-  "/summary",
+export const analyzeTextRoute = new Elysia().post(
+  "/analyze/text",
   async ({ body }) => {
     // TODO: run text through fact-check / credibility AI pipeline
+    console.log("analyze/text called");
     const stub: typeof AnalysisResponse.static = {
       analysis_id: randomUUID(),
       credibility_score: 50,
@@ -19,10 +20,10 @@ export const summaryRoute = new Elysia().post(
     return stub;
   },
   {
-    body: SummaryBody,
+    body: AnalyzeTextBody,
     response: AnalysisResponse,
     detail: {
-      summary: "Analyze highlighted text for credibility",
+      summary: "Analyze text for credibility and misinformation",
       tags: ["Analysis"],
     },
   }

@@ -1,8 +1,8 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
-import { analyzeRoute } from "./routes/analyze";
+import { analyzeUrlRoute } from "./routes/analyze-url";
+import { analyzeTextRoute } from "./routes/analyze-text";
 import { imageRoute } from "./routes/image";
-import { summaryRoute } from "./routes/summary";
 import { transcriptRoute } from "./routes/transcript";
 import { ttsRoute } from "./routes/tts";
 import { feedbackRoute } from "./routes/feedback";
@@ -13,9 +13,9 @@ const app = new Elysia()
   .use(cors())
   .use(healthRoute)
   .use(languagesRoute)
-  .use(analyzeRoute)
+  .use(analyzeUrlRoute)
+  .use(analyzeTextRoute)
   .use(imageRoute)
-  .use(summaryRoute)
   .use(transcriptRoute)
   .use(ttsRoute)
   .use(feedbackRoute)
