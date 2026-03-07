@@ -146,7 +146,7 @@ export const analyzeTextRoute = new Elysia().post(
       let source = "External source";
       try {
         source = new URL(item.url).hostname.replace(/^www\./, "");
-      } catch { }
+      } catch {}
       return {
         title: item.title?.trim() || source,
         source,
