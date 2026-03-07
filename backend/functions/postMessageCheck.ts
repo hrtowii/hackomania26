@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import crypto, { randomUUID } from "crypto";
+import { embedText } from "./embeddings";
 import { MessageCheckCrossReference, MessageCheckInput } from "../src/types";
 const supabaseUrl = Bun.env.SUPABASE_URL;
 const supabaseKey = Bun.env.SUPABASE_ANON_KEY;
