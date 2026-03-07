@@ -110,7 +110,7 @@ export const analyzeTextRoute = new Elysia().post(
     console.log("🔍 [3/5] Calling AI with web search...");
     const start = Date.now();
 
-    const { text: raw, searchResults } = await callAiWithSearch(prompt, {
+    const raw = await callAiWithSearch(prompt, {
       systemPrompt: SYSTEM_PROMPT,
       responseFormat: {
         type: "json_schema",
