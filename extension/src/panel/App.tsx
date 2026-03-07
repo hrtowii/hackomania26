@@ -639,7 +639,6 @@ function AudioFileView({ onTranscribed, lang }: { onTranscribed: (text: string) 
       });
 
       if (!res.ok) {
-        // Try to get error details from response
         let errorText = "";
         try {
           errorText = await res.text();
@@ -681,7 +680,6 @@ function AudioFileView({ onTranscribed, lang }: { onTranscribed: (text: string) 
       console.error("Error message:", err instanceof Error ? err.message : String(err));
       console.error("Full error:", err);
 
-      // Set user-friendly error message
       let errorMessage = t.transcriptionFailed;
 
       if (err instanceof Error) {
@@ -697,21 +695,6 @@ function AudioFileView({ onTranscribed, lang }: { onTranscribed: (text: string) 
       }
 
       setError(errorMessage);
-      // convert .wav -> base64
-      const base64 = await new Promise<string>((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res((r.result as string).split(",")[1]);
-        r.onerror = rej;
-        r.readAsDataURL(file);
-      });
-      const res = await fetch(`${BACKEND_URL}/transcript`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ audio: base64, source_language: lang }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      onTranscribed(data.transcript);
-    } catch {
-      setError(t.transcriptionFailed);
     } finally {
       setLoading(false);
     }
