@@ -95,7 +95,6 @@ export async function callAiWithSearch(
 
   const firstMsg = first.choices[0].message;
 
-  // No tool call — return answer directly
   if (first.choices[0].finish_reason !== "tool_calls" || !firstMsg.tool_calls?.length) {
     console.log("no tool call")
     return firstMsg.content ?? "";

@@ -5,7 +5,6 @@ import { t } from "elysia";
 import { randomUUID } from "crypto";
 import { callAiWithSearch } from "../../functions/call-ai";
 
-// TypeBox schema for the model-generated fields only (no analysis_id / audio_url)
 const AnalysisOutputSchema = t.Object({
   credibility_score: t.Number({ minimum: 0, maximum: 100 }),
   risk_level: t.Union([t.Literal("safe"), t.Literal("caution"), t.Literal("suspicious")]),
