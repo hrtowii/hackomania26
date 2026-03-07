@@ -50,26 +50,6 @@ export async function callAiChat(
   return res.choices[0].message.content ?? "";
 }
 
-export async function callAiImage(
-  imageBase64: string,
-  prompt: string,
-  model: string = IMG_MODEL
-): Promise<string> {
-  const res = await openai_client.chat.completions.create({
-    model,
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
-          { type: "text", text: prompt },
-        ],
-      },
-    ],
-  });
-  return res.choices[0].message.content ?? "";
-}
-
 const EXA_SEARCH_TOOL: OpenAI.Chat.Completions.ChatCompletionTool = {
   type: "function",
   function: {
@@ -124,6 +104,90 @@ export async function callAiWithSearch(
   const firstMsg = first.choices[0].message;
 
   // Model answered directly without calling the tool
+  if (first.choices[0].finish_reason !== "tool_calls" || !firstMsg.tool_calls?.length) {
+    return { text: firstMsg.content ?? "", searchResults: [] };
+  }
+
+  const toolCall = firstMsg.tool_calls[0];
+  if (toolCall.type !== "function") {
+    return { text: firstMsg.content ?? "", searchResults: [] };
+  }
+
+  const { query, num_results } = JSON.parse(toolCall.function.arguments) as {
+    query: string;
+    num_results?: number;
+  };
+
+  const searchResults = await exaSearch(query, num_results ?? 5);
+
+  const secondCallParams: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming = {
+    model,
+    stream: false,
+    messages: [
+      ...messages,
+      firstMsg,
+      { role: "tool", tool_call_id: toolCall.id, content: JSON.stringify(searchResults) },
+    ],
+    ...(responseFormat
+      ? {
+          response_format: responseFormat as unknown as OpenAI.ResponseFormatJSONSchema,
+          plugins: RESPONSE_HEALING_PLUGIN,
+        }
+      : {}),
+  };
+
+  const second = await openai_client.chat.completions.create(secondCallParams);
+
+  return {
+    text: second.choices[0].message.content ?? "",
+    searchResults,
+  };
+}
+
+/**
+ * One-shot multimodal call with Exa web search tool.
+ * Passes all images alongside the text prompt in a single user message.
+ * The model may call exa_search if it needs to verify claims.
+ */
+export async function callAiImageWithSearch(
+  imagesBase64: string[],
+  prompt: string,
+  options: CallAiWithSearchOptions = {}
+): Promise<CallAiWithSearchResult> {
+  const { model = IMG_MODEL, responseFormat, systemPrompt } = options;
+
+  const imageContent: OpenAI.Chat.Completions.ChatCompletionContentPart[] = imagesBase64.map(
+    (b64) => ({
+      type: "image_url",
+      image_url: { url: `data:image/jpeg;base64,${b64}` },
+    })
+  );
+
+  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    ...(systemPrompt ? [{ role: "system", content: systemPrompt } as const] : []),
+    {
+      role: "user",
+      content: [...imageContent, { type: "text", text: prompt }],
+    },
+  ];
+
+  const firstCallParams: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming = {
+    model,
+    messages,
+    tools: [EXA_SEARCH_TOOL],
+    tool_choice: "auto",
+    stream: false,
+    ...(responseFormat
+      ? {
+          response_format: responseFormat as unknown as OpenAI.ResponseFormatJSONSchema,
+          plugins: RESPONSE_HEALING_PLUGIN,
+        }
+      : {}),
+  };
+
+  const first = await openai_client.chat.completions.create(firstCallParams);
+  const firstMsg = first.choices[0].message;
+
   if (first.choices[0].finish_reason !== "tool_calls" || !firstMsg.tool_calls?.length) {
     return { text: firstMsg.content ?? "", searchResults: [] };
   }
