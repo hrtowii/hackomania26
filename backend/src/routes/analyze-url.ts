@@ -93,8 +93,6 @@ export const analyzeUrlRoute = new Elysia().post(
       throw new Error(`JSON parse failed: ${e}`);
     }
 
-    // Build cross_references deterministically from Exa results.
-    // AI-assigned contradiction_level values are mapped back by URL (best-effort).
     const aiByUrl = new Map<string, "low" | "medium" | "high">(
       (output.cross_references ?? [])
         .filter((ref) => ref.url?.startsWith("http"))
@@ -105,7 +103,7 @@ export const analyzeUrlRoute = new Elysia().post(
       let source = "External source";
       try {
         source = new URL(item.url).hostname.replace(/^www\./, "");
-      } catch {}
+      } catch { }
       return {
         title: item.title?.trim() || source,
         source,

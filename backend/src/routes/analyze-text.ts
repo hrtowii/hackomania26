@@ -40,6 +40,7 @@ export const analyzeTextRoute = new Elysia().post(
     const LangChosen = LANGUAGE_NAMES[body.preferred_language ?? "en"] ?? "English";
 
     console.log("[1/4] Request received:", {
+    console.log("[1/4] Request received:", {
       textLength: body.text.length,
       language: LangChosen,
       source: body.source_url || "none",
@@ -150,7 +151,7 @@ export const analyzeTextRoute = new Elysia().post(
       let source = "External source";
       try {
         source = new URL(item.url).hostname.replace(/^www\./, "");
-      } catch {}
+      } catch { }
       return {
         title: item.title?.trim() || source,
         source,
