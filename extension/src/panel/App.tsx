@@ -1,11 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import type { PendingAnalysis } from "../background/index";
 import { STORAGE_KEY } from "../background/index";
+import {
+  BACKEND_URL,
+  MAX_IMAGES,
+  CLASSIFICATION_COLORS,
+  CLASSIFICATION_ICONS,
+  LANGUAGES,
+  translations,
+  cardStyle,
+  dimText,
+  btnPrimary,
+  btnSecondary,
+  type Language,
+  type WhatsAppClassification,
+} from "./constants";
 import { deriveRiskLevel, getRiskColorFromScore, injectStyle, RISK_COLORS, type RiskLevel } from "./utils";
 
-type Language = "en" | "zh" | "ms" | "ta";
-/** Granular WhatsApp FactCheck classification */
-type WhatsAppClassification = "legitimate" | "misleading" | "scam" | "suspicious" | "unverified";
 type Mode = "picker" | "text" | "audio" | "speech" | "image";
 
 interface CrossReference {
@@ -17,7 +28,6 @@ interface CrossReference {
 interface AnalysisResult {
   analysis_id: string;
   credibility_score: number;
-  /** Granular classification, present on WhatsApp fact-check results */
   classification?: WhatsAppClassification;
   summary: string;
   bias_detected: string[];
@@ -33,369 +43,6 @@ type AppState =
   | { status: "loading" }
   | { status: "success"; result: AnalysisResult }
   | { status: "error"; message: string };
-
-// constants
-
-const BACKEND_URL = "http://localhost:3000";
-const MAX_IMAGES = 5;
-
-const CLASSIFICATION_COLORS: Record<WhatsAppClassification, string> = {
-  "legitimate": "#22c55e",
-  "unverified":  "#f59e0b",
-  "suspicious":  "#f97316",
-  "misleading":  "#ef4444",
-  "scam":        "#dc2626",
-};
-
-const CLASSIFICATION_ICONS: Record<WhatsAppClassification, string> = {
-  "legitimate": "\u2705",
-  "unverified": "\u2753",
-  "suspicious": "\u26A0\uFE0F",
-  "misleading": "\uD83D\uDEA8",
-  "scam":       "\uD83D\uDED1",
-};
-
-const LANGUAGES: { value: Language; label: string }[] = [
-  { value: "en", label: "English" },
-  { value: "zh", label: "中文" },
-  { value: "ms", label: "Melayu" },
-  { value: "ta", label: "தமிழ்" },
-];
-
-// Translations
-const translations = {
-  en: {
-    appName: "TruthLens",
-    responseLanguage: "RESPONSE LANGUAGE",
-    analyzing: "Analyzing…",
-    credibilityScore: "CREDIBILITY SCORE",
-    summary: "Summary",
-    recommendation: "Recommendation",
-    keyClaims: "Key Claims",
-    biasDetected: "Bias Detected",
-    crossReferences: "Cross-References",
-    analyzeAnother: "Analyze another selection",
-    back: "Back",
-    
-    // Mode picker
-    modePickerTitle: "How would you like to fact-check today?",
-    modeText: "Paste / Type Text",
-    modeTextDesc: "Paste a news snippet, WhatsApp message, or any claim",
-    modeAudio: "Upload Audio File",
-    modeAudioDesc: "Upload a .wav, .mp3, or .m4a file to transcribe and analyse",
-    modeSpeech: "Speak to Analyse",
-    modeSpeechDesc: "Record live speech via your microphone",
-    modeImage: "Upload Screenshot",
-    modeImageDesc: "Check images or forwarded photos for misleading content",
-    
-    // Text input
-    pasteOrType: "PASTE OR TYPE TEXT",
-    textPlaceholder: "Paste a news headline, WhatsApp message, social media post…",
-    analyzeText: "Analyze Text",
-    
-    // Audio
-    uploadAudioFile: "UPLOAD AUDIO FILE",
-    dropToUpload: "Drop to upload",
-    dragOrClick: "Drag & drop or click to select",
-    audioFormats: "WAV · MP3 · M4A · OGG",
-    transcribing: "Transcribing…",
-    transcribeAndAnalyze: "Transcribe & Analyse",
-    transcriptionFailed: "Transcription failed — check that the backend /transcribe endpoint is running.",
-    
-    // Speech
-    listening: "● Listening…",
-    tapMicToStart: "Tap mic to start",
-    speechSupport: "Supports English, Mandarin, Malay & Tamil.",
-    tapAgainToStop: "Tap again to stop.",
-    transcript: "TRANSCRIPT",
-    analyzeSpeech: "Analyze Speech",
-    clear: "Clear",
-    speechNotSupported: "Speech recognition not supported in this browser.",
-    microphoneError: "Microphone error — check browser permissions.",
-    
-    // Image
-    uploadScreenshots: "UPLOAD SCREENSHOT(S)",
-    imageDesc: "Check images or forwarded photos for misleading visuals or fake headlines. Up to",
-    imageDescImages: "images.",
-    imageFormats: "PNG · JPG · WEBP · up to",
-    maxReached: "Max",
-    maxReachedEnd: "reached",
-    analysingImages: "Analysing…",
-    analyzeImages: "Analyse",
-    image: "image",
-    images: "images",
-    imageFailed: "Image analysis failed — check that the backend /analyze-image endpoint is running.",
-    
-    // States
-    selectedText: "SELECTED TEXT",
-    analyze: "Analyze",
-    dismiss: "Dismiss",
-    
-    // Contradiction levels
-    lowContradiction: "low contradiction",
-    mediumContradiction: "medium contradiction",
-    highContradiction: "high contradiction",
-    
-    // Classification
-    classificationLabel: "CLASSIFICATION",
-    classificationLegitimate: "Legitimate",
-    classificationMisleading: "Misleading",
-    classificationScam: "Scam",
-    classificationSuspicious: "Suspicious",
-    classificationUnverified: "Unverified",
-    riskSafe: "Safe",
-    riskCaution: "Caution",
-    riskSuspicious: "Suspicious",
-  },
-  
-  zh: {
-    appName: "真相透镜",
-    responseLanguage: "回复语言",
-    analyzing: "分析中…",
-    credibilityScore: "可信度评分",
-    summary: "摘要",
-    recommendation: "建议",
-    keyClaims: "关键声明",
-    biasDetected: "检测到的偏见",
-    crossReferences: "交叉引用",
-    analyzeAnother: "分析另一个选择",
-    back: "返回",
-    
-    modePickerTitle: "您今天想如何进行事实核查？",
-    modeText: "粘贴/输入文本",
-    modeTextDesc: "粘贴新闻片段、WhatsApp消息或任何声明",
-    modeAudio: "上传音频文件",
-    modeAudioDesc: "上传.wav、.mp3或.m4a文件进行转录和分析",
-    modeSpeech: "语音分析",
-    modeSpeechDesc: "通过麦克风录制实时语音",
-    modeImage: "上传截图",
-    modeImageDesc: "检查图片或转发的照片是否有误导性内容",
-    
-    pasteOrType: "粘贴或输入文本",
-    textPlaceholder: "粘贴新闻标题、WhatsApp消息、社交媒体帖子…",
-    analyzeText: "分析文本",
-    
-    uploadAudioFile: "上传音频文件",
-    dropToUpload: "放下以上传",
-    dragOrClick: "拖放或点击选择",
-    audioFormats: "WAV · MP3 · M4A · OGG",
-    transcribing: "转录中…",
-    transcribeAndAnalyze: "转录并分析",
-    transcriptionFailed: "转录失败 — 请检查后端 /transcribe 端点是否正在运行。",
-    
-    listening: "● 正在听…",
-    tapMicToStart: "点击麦克风开始",
-    speechSupport: "支持英语、普通话、马来语和泰米尔语。",
-    tapAgainToStop: "再次点击停止。",
-    transcript: "转录文本",
-    analyzeSpeech: "分析语音",
-    clear: "清除",
-    speechNotSupported: "此浏览器不支持语音识别。",
-    microphoneError: "麦克风错误 — 请检查浏览器权限。",
-    
-    uploadScreenshots: "上传截图",
-    imageDesc: "检查图片或转发的照片是否有误导性视觉效果或虚假标题。最多",
-    imageDescImages: "张图片。",
-    imageFormats: "PNG · JPG · WEBP · 最多",
-    maxReached: "已达到最大值",
-    maxReachedEnd: "",
-    analysingImages: "分析中…",
-    analyzeImages: "分析",
-    image: "张图片",
-    images: "张图片",
-    imageFailed: "图片分析失败 — 请检查后端 /analyze-image 端点是否正在运行。",
-    
-    selectedText: "选定的文本",
-    analyze: "分析",
-    dismiss: "关闭",
-    
-    lowContradiction: "低矛盾",
-    mediumContradiction: "中等矛盾",
-    highContradiction: "高矛盾",
-    
-    classificationLabel: "分类",
-    classificationLegitimate: "合法",
-    classificationMisleading: "误导性",
-    classificationScam: "诈骗",
-    classificationSuspicious: "可疑",
-    classificationUnverified: "未核实",
-    riskSafe: "安全",
-    riskCaution: "注意",
-    riskSuspicious: "可疑",
-  },
-  
-  ms: {
-    appName: "TruthLens",
-    responseLanguage: "BAHASA RESPONS",
-    analyzing: "Menganalisis…",
-    credibilityScore: "SKOR KREDIBILITI",
-    summary: "Ringkasan",
-    recommendation: "Cadangan",
-    keyClaims: "Tuntutan Utama",
-    biasDetected: "Bias Dikesan",
-    crossReferences: "Rujukan Silang",
-    analyzeAnother: "Analisis pilihan lain",
-    back: "Kembali",
-    
-    modePickerTitle: "Bagaimana anda ingin menyemak fakta hari ini?",
-    modeText: "Tampal / Taip Teks",
-    modeTextDesc: "Tampal petikan berita, mesej WhatsApp, atau sebarang tuntutan",
-    modeAudio: "Muat Naik Fail Audio",
-    modeAudioDesc: "Muat naik fail .wav, .mp3, atau .m4a untuk transkripsi dan analisis",
-    modeSpeech: "Bercakap untuk Analisis",
-    modeSpeechDesc: "Rakam ucapan langsung melalui mikrofon anda",
-    modeImage: "Muat Naik Tangkapan Skrin",
-    modeImageDesc: "Semak imej atau foto yang dimajukan untuk kandungan yang mengelirukan",
-    
-    pasteOrType: "TAMPAL ATAU TAIP TEKS",
-    textPlaceholder: "Tampal tajuk berita, mesej WhatsApp, hantaran media sosial…",
-    analyzeText: "Analisis Teks",
-    
-    uploadAudioFile: "MUAT NAIK FAIL AUDIO",
-    dropToUpload: "Lepaskan untuk muat naik",
-    dragOrClick: "Seret & lepas atau klik untuk pilih",
-    audioFormats: "WAV · MP3 · M4A · OGG",
-    transcribing: "Menyalin…",
-    transcribeAndAnalyze: "Salin & Analisis",
-    transcriptionFailed: "Penyalinan gagal — semak sama ada titik akhir backend /transcribe sedang berjalan.",
-    
-    listening: "● Mendengar…",
-    tapMicToStart: "Ketik mikrofon untuk mula",
-    speechSupport: "Menyokong Bahasa Inggeris, Mandarin, Melayu & Tamil.",
-    tapAgainToStop: "Ketik lagi untuk berhenti.",
-    transcript: "TRANSKRIP",
-    analyzeSpeech: "Analisis Ucapan",
-    clear: "Padam",
-    speechNotSupported: "Pengecaman pertuturan tidak disokong dalam pelayar ini.",
-    microphoneError: "Ralat mikrofon — semak kebenaran pelayar.",
-    
-    uploadScreenshots: "MUAT NAIK TANGKAPAN SKRIN",
-    imageDesc: "Semak imej atau foto yang dimajukan untuk visual atau tajuk berita palsu yang mengelirukan. Sehingga",
-    imageDescImages: "imej.",
-    imageFormats: "PNG · JPG · WEBP · sehingga",
-    maxReached: "Maksimum",
-    maxReachedEnd: "dicapai",
-    analysingImages: "Menganalisis…",
-    analyzeImages: "Analisis",
-    image: "imej",
-    images: "imej",
-    imageFailed: "Analisis imej gagal — semak sama ada titik akhir backend /analyze-image sedang berjalan.",
-    
-    selectedText: "TEKS TERPILIH",
-    analyze: "Analisis",
-    dismiss: "Tutup",
-    
-    lowContradiction: "percanggahan rendah",
-    mediumContradiction: "percanggahan sederhana",
-    highContradiction: "percanggahan tinggi",
-    
-    classificationLabel: "KLASIFIKASI",
-    classificationLegitimate: "Sah",
-    classificationMisleading: "Mengelirukan",
-    classificationScam: "Penipuan",
-    classificationSuspicious: "Mencurigakan",
-    classificationUnverified: "Tidak Disahkan",
-    riskSafe: "Selamat",
-    riskCaution: "Berhati-hati",
-    riskSuspicious: "Mencurigakan",
-  },
-  
-  ta: {
-    appName: "உண்மை லென்ஸ்",
-    responseLanguage: "பதில் மொழி",
-    analyzing: "பகுப்பாய்வு செய்கிறது…",
-    credibilityScore: "நம்பகத்தன்மை மதிப்பெண்",
-    summary: "சுருக்கம்",
-    recommendation: "பரிந்துரை",
-    keyClaims: "முக்கிய கூற்றுகள்",
-    biasDetected: "சார்பு கண்டறியப்பட்டது",
-    crossReferences: "குறுக்கு குறிப்புகள்",
-    analyzeAnother: "மற்றொரு தேர்வை பகுப்பாய்வு செய்க",
-    back: "பின்செல்",
-    
-    modePickerTitle: "இன்று நீங்கள் எவ்வாறு உண்மையை சரிபார்க்க விரும்புகிறீர்கள்?",
-    modeText: "ஒட்டவும் / உரை தட்டச்சு செய்யவும்",
-    modeTextDesc: "செய்தி துணுக்கு, WhatsApp செய்தி அல்லது ஏதேனும் கூற்றை ஒட்டவும்",
-    modeAudio: "ஆடியோ கோப்பை பதிவேற்றவும்",
-    modeAudioDesc: ".wav, .mp3, அல்லது .m4a கோப்பை பதிவேற்றி, படியெடுத்து பகுப்பாய்வு செய்யவும்",
-    modeSpeech: "பேசி பகுப்பாய்வு செய்க",
-    modeSpeechDesc: "உங்கள் மைக்ரோஃபோன் மூலம் நேரலை பேச்சை பதிவு செய்க",
-    modeImage: "திரை பிடிப்பை பதிவேற்றவும்",
-    modeImageDesc: "தவறாக வழிநடத்தும் உள்ளடக்கத்திற்காக படங்கள் அல்லது அனுப்பப்பட்ட புகைப்படங்களை சரிபார்க்கவும்",
-    
-    pasteOrType: "ஒட்டவும் அல்லது உரை தட்டச்சு செய்யவும்",
-    textPlaceholder: "செய்தி தலைப்பு, WhatsApp செய்தி, சமூக ஊடக இடுகை ஒட்டவும்…",
-    analyzeText: "உரையை பகுப்பாய்வு செய்க",
-    
-    uploadAudioFile: "ஆடியோ கோப்பை பதிவேற்றவும்",
-    dropToUpload: "பதிவேற்ற விடவும்",
-    dragOrClick: "இழுத்து விடவும் அல்லது தேர்ந்தெடுக்க கிளிக் செய்யவும்",
-    audioFormats: "WAV · MP3 · M4A · OGG",
-    transcribing: "படியெடுக்கிறது…",
-    transcribeAndAnalyze: "படியெடுத்து பகுப்பாய்வு செய்க",
-    transcriptionFailed: "படியெடுப்பு தோல்வியடைந்தது — பின்புல /transcribe endpoint இயங்குகிறதா என சரிபார்க்கவும்.",
-    
-    listening: "● கேட்கிறது…",
-    tapMicToStart: "தொடங்க மைக்கை தட்டவும்",
-    speechSupport: "ஆங்கிலம், மாண்டரின், மலாய் & தமிழை ஆதரிக்கிறது.",
-    tapAgainToStop: "நிறுத்த மீண்டும் தட்டவும்.",
-    transcript: "படியெடுப்பு",
-    analyzeSpeech: "பேச்சை பகுப்பாய்வு செய்க",
-    clear: "அழி",
-    speechNotSupported: "இந்த உலாவியில் பேச்சு அங்கீகாரம் ஆதரிக்கப்படவில்லை.",
-    microphoneError: "மைக்ரோஃபோன் பிழை — உலாவி அனுமதிகளை சரிபார்க்கவும்.",
-    
-    uploadScreenshots: "திரை பிடிப்புகளை பதிவேற்றவும்",
-    imageDesc: "தவறாக வழிநடத்தும் காட்சிகள் அல்லது போலி தலைப்புகளுக்காக படங்கள் அல்லது அனுப்பப்பட்ட புகைப்படங்களை சரிபார்க்கவும். அதிகபட்சம்",
-    imageDescImages: "படங்கள்.",
-    imageFormats: "PNG · JPG · WEBP · அதிகபட்சம்",
-    maxReached: "அதிகபட்சம்",
-    maxReachedEnd: "அடைந்தது",
-    analysingImages: "பகுப்பாய்வு செய்கிறது…",
-    analyzeImages: "பகுப்பாய்வு செய்க",
-    image: "படம்",
-    images: "படங்கள்",
-    imageFailed: "படம் பகுப்பாய்வு தோல்வியடைந்தது — பின்புல /analyze-image endpoint இயங்குகிறதா என சரிபார்க்கவும்.",
-    
-    selectedText: "தேர்ந்தெடுக்கப்பட்ட உரை",
-    analyze: "பகுப்பாய்வு செய்க",
-    dismiss: "நிராகரி",
-    
-    lowContradiction: "குறைந்த முரண்பாடு",
-    mediumContradiction: "நடுத்தர முரண்பாடு",
-    highContradiction: "உயர் முரண்பாடு",
-    
-    classificationLabel: "வகைப்பாடு",
-    classificationLegitimate: "சட்டப்பூர்வமானது",
-    classificationMisleading: "தவறான தகவல்",
-    classificationScam: "மோசடி",
-    classificationSuspicious: "சந்தேகமானது",
-    classificationUnverified: "உறுதிப்படுத்தப்படாதது",
-    riskSafe: "பாதுகாப்பானது",
-    riskCaution: "கவனமாக இருக்கவும்",
-    riskSuspicious: "சந்தேகமானது",
-  },
-};
-
-// css style helper
-
-const cardStyle: React.CSSProperties = {
-  background: "#1a1a2e", border: "1px solid #3a3a5e",
-  borderRadius: 8, padding: 12,
-};
-const dimText: React.CSSProperties = { fontSize: 11, color: "#888" };
-const btnPrimary: React.CSSProperties = {
-  width: "100%", padding: "10px 0",
-  background: "#7c3aed", color: "#fff",
-  border: "none", borderRadius: 8,
-  fontSize: 14, fontWeight: 700, cursor: "pointer",
-};
-const btnSecondary: React.CSSProperties = {
-  width: "100%", padding: "8px 0",
-  background: "transparent", color: "#666",
-  border: "1px solid #2a2a4e", borderRadius: 8,
-  fontSize: 13, cursor: "pointer",
-};
 
 function ScoreRing({ score }: { score: number }) {
   const color = getRiskColorFromScore(score);
@@ -838,13 +485,13 @@ function ResultState({ result, onReset, lang }: { result: AnalysisResult; onRese
     suspicious: t.classificationSuspicious,
     unverified: t.classificationUnverified,
   };
-  
+
   const getContradictionText = (level: "low" | "medium" | "high") => {
     if (level === "low") return t.lowContradiction;
     if (level === "medium") return t.mediumContradiction;
     return t.highContradiction;
   };
-  
+
   return (
     <div>
       {/* Classification badge — shown when the result includes a WhatsApp classification */}
@@ -944,7 +591,7 @@ export default function App() {
   const [state, setState] = useState<AppState>({ status: "idle" });
   const [mode, setMode] = useState<Mode>("picker");
   const [language, setLanguage] = useState<Language>("en");
-  const [lastInput, setLastInput] = useState<{text: string; sourceUrl: string } | null>(null);
+  const [lastInput, setLastInput] = useState<{ text: string; sourceUrl: string } | null>(null);
   const t = translations[language];
 
   useEffect(() => {
