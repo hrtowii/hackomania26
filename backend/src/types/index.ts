@@ -189,27 +189,6 @@ export const HealthResponse = t.Object({
 
 export type THealthResponse = typeof HealthResponse.static;
 
-// ─── POST /scam-detect ──────────────────────────────────────────────────────────
-
-export const ScamDetectBody = t.Object({
-  target_url: t.Optional(t.String({ description: "Destination URL (link href or form action)" })),
-  page_url: t.String({ description: "Current page URL" }),
-  button_text: t.Optional(t.String({ description: "Visible text of the clicked element" })),
-  page_title: t.Optional(t.String({ description: "Document title of the current page" })),
-  preferred_language: PreferredLanguageField,
-});
-
-export type TScamDetectBody = typeof ScamDetectBody.static;
-
-export const ScamDetectResponse = t.Object({
-  safety_score: t.Number({ minimum: 0, maximum: 100, description: "0 = definite scam, 100 = completely safe" }),
-  is_scam: t.Boolean(),
-  summary: t.String({ description: "One-line plain-English summary of the risk" }),
-  risk_level: t.Union([t.Literal("safe"), t.Literal("caution"), t.Literal("suspicious")]),
-});
-
-export type TScamDetectResponse = typeof ScamDetectResponse.static;
-
 // ─── AI chat message types (used by functions/call-ai.ts) ────────────────────
 
 export type SystemMessage = { role: "system"; content: string };

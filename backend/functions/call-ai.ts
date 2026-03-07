@@ -9,8 +9,8 @@ export const openai_client = new OpenAI({
   apiKey: Bun.env.OPENROUTER_API_KEY,
 });
 
-export const DEFAULT_MODEL = "moonshotai/kimi-k2.5";
-
+export const DEFAULT_MODEL = "google/gemini-3.1-flash-lite-preview";
+export const IMG_MODEL = "google/gemini-3.1-flash-lite-preview";
 export async function callAiOneShot(
   prompt: string,
   model: string = DEFAULT_MODEL
@@ -40,7 +40,7 @@ export async function callAiChat(
 export async function callAiImage(
   imageBase64: string,
   prompt: string,
-  model: string = DEFAULT_MODEL
+  model: string = IMG_MODEL
 ): Promise<string> {
   const res = await openai_client.chat.completions.create({
     model,
