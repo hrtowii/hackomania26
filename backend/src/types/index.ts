@@ -60,6 +60,16 @@ export const AnalysisAiOutputSchema = t.Object({
   cross_references: t.Array(CrossReference),
   key_claims: t.Array(t.String()),
   recommendation: t.String(),
+  ai_detection: t.Optional(t.Object({
+    verdict: t.Union([
+      t.Literal("real"),
+      t.Literal("ai-generated"),
+      t.Literal("deepfake"),
+      t.Literal("inconclusive"),
+    ]),
+    confidence: t.Number({ minimum: 0, maximum: 100 }),
+    signals: t.Array(t.String()),
+  })),
 });
 
 export type TAnalysisAiOutput = typeof AnalysisAiOutputSchema.static;

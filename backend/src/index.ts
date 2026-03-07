@@ -8,6 +8,7 @@ import { ttsRoute } from "./routes/tts";
 import { feedbackRoute } from "./routes/feedback";
 import { healthRoute } from "./routes/health";
 import { languagesRoute } from "./routes/languages";
+import { videoRoute } from "./routes/video";
 
 const app = new Elysia()
   .use(cors())
@@ -19,6 +20,7 @@ const app = new Elysia()
   .use(transcriptRoute)
   .use(ttsRoute)
   .use(feedbackRoute)
+  .use(videoRoute)
   .listen(3000);
 
 console.log(
