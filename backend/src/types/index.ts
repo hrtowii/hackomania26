@@ -92,7 +92,10 @@ export type TAnalyzeUrlBody = typeof AnalyzeUrlBody.static;
 // ─── POST /image ──────────────────────────────────────────────────────────────
 
 export const ImageBody = t.Object({
-  image: t.String({ description: "Base64-encoded image or file content" }),
+  images: t.Array(t.String({ description: "Base64-encoded image" }), {
+    minItems: 1,
+    description: "One or more base64-encoded images",
+  }),
   context_url: t.Optional(t.String()),
   preferred_language: PreferredLanguageField,
 });
