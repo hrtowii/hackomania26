@@ -3,7 +3,15 @@ import { AnalyzeTextBody, AnalysisAiOutputSchema, AnalysisResponse } from "../ty
 import type { TAnalysisAiOutput, TAnalysisResponse } from "../types";
 import { randomUUID } from "crypto";
 import { callAiWithSearch } from "../../functions/call-ai";
+import { embedText } from "../../functions/embeddings";
 import { postMessageCheck } from "../../functions/postMessageCheck";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  Bun.env.SUPABASE_URL!,
+  (Bun.env.SUPABASE_SERVICE_ROLE_KEY ?? Bun.env.SUPABASE_ANON_KEY)!
+);
+
 const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
   zh: "Simplified Chinese (中文)",
@@ -43,9 +51,62 @@ export const analyzeTextRoute = new Elysia().post(
       `${body.source_url ? `Source URL: ${body.source_url}\n` : ""}` +
       `${body.preferred_language ? `Respond in language: ${body.preferred_language}\n` : ""}` +
       `Text:\n\n${body.text}`;
+    console.log("🔍 [2/5] Comparing with scams in the database...");
+    const embeddings = await embedText(body.text);
+    // ADD embedding search here and return the 5 closest matches (debug)
+    console.log("🧠 embedding length:", embeddings.length);
+    
+    try {
+      const { data: matches, error } = await supabase.rpc("match_message_checks", {
+        query_embedding: embeddings,
+        match_count: 5,
+        min_similarity: 0.01, // tune later (0.82–0.90)
+      });
+      if (error) {
+        console.error("Embedding RPC error:", error.message);
+      } else {
+        const results = (matches ?? []) as Array<{
+          message_check_id: string;
+          similarity: number;
+          credibility_score: number;
+          summary: string;
+          recommendation: string;
+          content_text: string;
+        }>;
 
-    console.log("🔍 [2/4] Calling AI with web search...");
+        // Flag “known scam/misinfo” candidates: high similarity + low credibility
+        const suspicious = results.filter(
+          (m) => m.similarity >= 0.00 && (m.credibility_score ?? 100) <= 90
+        );
+
+        if (suspicious.length > 0) {
+          const best = suspicious[0];
+
+          console.log("🚨 Similar scam/misinfo found in DB:", {
+            id: best.message_check_id,
+            similarity: best.similarity,
+            credibility: best.credibility_score,
+          });
+
+          // Return early: reuse stored analysis (skip AI)
+          return {
+            credibility_score: best.credibility_score,
+            summary: best.summary,
+            recommendation: best.recommendation,
+            bias_detected: [], // optional: you can store these in DB and return them too
+            key_claims: [],
+            cross_references: [],
+            analysis_id: randomUUID(),
+          } satisfies TAnalysisResponse;
+        }
+      }
+    } catch (e) {
+      console.error("Embedding search failed:", e);
+    }
+
+    console.log("🔍 [3/5] Calling AI with web search...");
     const start = Date.now();
+
 
     const raw = await callAiWithSearch(prompt, {
       systemPrompt: SYSTEM_PROMPT,
@@ -59,7 +120,7 @@ export const analyzeTextRoute = new Elysia().post(
       },
     });
 
-    console.log(`✅ [3/4] AI responded in ${((Date.now() - start) / 1000).toFixed(1)}s`);
+    console.log(`✅ [4/5] AI responded in ${((Date.now() - start) / 1000).toFixed(1)}s`);
     console.log("📄 Raw length:", raw?.length ?? 0);
     console.log("📄 Raw preview:", raw?.slice(0, 200));
 
@@ -88,7 +149,7 @@ export const analyzeTextRoute = new Elysia().post(
       contradiction_level: (CONTRADICTION_MAP[ref.contradiction_level] ?? ref.contradiction_level) as "low" | "medium" | "high",
     }));
 
-    console.log("🎉 [4/4] Done. score:", output.credibility_score);
+    console.log("🎉 [5/5] Done. score:", output.credibility_score);
     let db_id: string | undefined;
 
     try {
