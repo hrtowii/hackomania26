@@ -9,6 +9,7 @@ export function ModePicker({ onPick, lang }: { onPick: (m: Mode) => void; lang: 
     { mode: "audio", icon: "🎵", title: t.modeAudio, desc: t.modeAudioDesc },
     { mode: "speech", icon: "🎙️", title: t.modeSpeech, desc: t.modeSpeechDesc },
     { mode: "image", icon: "🖼️", title: t.modeImage, desc: t.modeImageDesc },
+    { mode: "video", icon: "🎬", title: t.modeVideo, desc: t.modeVideoDesc },
   ];
 
   return (

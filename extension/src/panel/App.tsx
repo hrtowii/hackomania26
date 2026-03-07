@@ -14,8 +14,8 @@ import { TextInputView } from "./components/TextInputView";
 import { AudioFileView } from "./components/AudioFileView";
 import { SpeechView } from "./components/SpeechView";
 import { ImageUploadView } from "./components/ImageUploadView";
-import { cardStyle } from "./constants";
-import { btnPrimary, btnSecondary, translations } from "./constants";
+import { VideoUploadView } from "./components/Videouploadview";
+import { cardStyle, btnPrimary, btnSecondary, translations } from "./constants";
 
 export default function App() {
   const [state, setState] = useState<AppState>({ status: "idle" });
@@ -74,7 +74,7 @@ export default function App() {
     }
   }
 
-    function reset() {
+  function reset() {
     chrome.storage.session.remove(STORAGE_KEY);
     setState({ status: "idle" });
     setMode("picker");
@@ -95,7 +95,7 @@ export default function App() {
       <Header lang={language} showBack={showBack} onBack={reset} />
       <LanguagePicker language={language} onChange={handleLanguageChange} />
 
-      {state.status === "loading" && <LoadingState lang={language} transcript={pendingTranscript}/>}
+      {state.status === "loading" && <LoadingState lang={language} transcript={pendingTranscript} />}
       {state.status === "success" && <ResultState result={state.result} onReset={reset} lang={language} />}
       {state.status === "error" && <ErrorState message={state.message} onRetry={reset} lang={language} />}
 
@@ -125,11 +125,18 @@ export default function App() {
             </>
           )}
 
-          {mode === "audio" && (
-            <AudioFileView onTranscribed={(text) => { setPendingTranscript(text); analyzeText(text, "audio://file");
-              }}
+          {mode === "video" && (
+            <VideoUploadView
+              onResult={(result) => setState({ status: "success", result })}
               lang={language}
             />
+          )}
+
+          {mode === "audio" && (
+            <AudioFileView onTranscribed={(text) => {
+              setPendingTranscript(text);
+              analyzeText(text, "audio://file");
+            }} lang={language} />
           )}
 
           {mode === "speech" && (

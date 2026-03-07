@@ -104,6 +104,16 @@ export const translations = {
     riskSafe: "Safe",
     riskCaution: "Caution",
     riskSuspicious: "Suspicious",
+
+    modeVideo: "Upload Video",
+    modeVideoDesc: "Detect scams, deepfakes, and AI-generated content in videos",
+    uploadVideo: "UPLOAD VIDEO",
+    videoFormats: "MP4 · MOV · WEBM",
+    analyzeVideo: "Analyse Video",
+    analysingVideo: "Analysing video…",
+    videoFailed: "Video analysis failed — check that ffmpeg is installed and backend is running.",
+    videoTranscript: "AUDIO TRANSCRIPT",
+    extractingFrames: "Extracting frames & transcribing audio…",
   },
 
   zh: {
@@ -180,6 +190,15 @@ export const translations = {
     riskSafe: "安全",
     riskCaution: "注意",
     riskSuspicious: "可疑",
+    modeVideo: "上传视频",
+    modeVideoDesc: "检测视频中的诈骗、深度伪造和AI生成内容",
+    uploadVideo: "上传视频",
+    videoFormats: "MP4 · MOV · WEBM",
+    analyzeVideo: "分析视频",
+    analysingVideo: "正在分析视频…",
+    videoFailed: "视频分析失败 — 请检查ffmpeg是否已安装并且后端正在运行。",
+    videoTranscript: "音频转录",
+    extractingFrames: "正在提取帧并转录音频…",
   },
 
   ms: {
@@ -256,6 +275,16 @@ export const translations = {
     riskSafe: "Selamat",
     riskCaution: "Berhati-hati",
     riskSuspicious: "Mencurigakan",
+
+    modeVideo: "Muat Naik Video",
+    modeVideoDesc: "Kesan penipuan, deepfake, dan kandungan janaan AI dalam video",
+    uploadVideo: "MUAT NAIK VIDEO",
+    videoFormats: "MP4 · MOV · WEBM",
+    analyzeVideo: "Analisis Video",
+    analysingVideo: "Menganalisis video…",
+    videoFailed: "Analisis video gagal — semak sama ada ffmpeg dipasang dan backend berjalan.",
+    videoTranscript: "TRANSKRIP AUDIO",
+    extractingFrames: "Mengekstrak bingkai & menyalin audio…",
   },
 
   ta: {
@@ -332,6 +361,16 @@ export const translations = {
     riskSafe: "பாதுகாப்பானது",
     riskCaution: "கவனமாக இருக்கவும்",
     riskSuspicious: "சந்தேகமானது",
+
+    modeVideo: "வீடியோ பதிவேற்றவும்",
+    modeVideoDesc: "வீடியோக்களில் மோசடி, டீப்ஃபேக் மற்றும் AI உருவாக்கிய உள்ளடக்கத்தை கண்டறியவும்",
+    uploadVideo: "வீடியோ பதிவேற்றவும்",
+    videoFormats: "MP4 · MOV · WEBM",
+    analyzeVideo: "வீடியோவை பகுப்பாய்வு செய்க",
+    analysingVideo: "வீடியோவை பகுப்பாய்வு செய்கிறது…",
+    videoFailed: "வீடியோ பகுப்பாய்வு தோல்வியடைந்தது — ffmpeg நிறுவப்பட்டுள்ளதா என சரிபார்க்கவும்.",
+    videoTranscript: "ஆடியோ படியெடுப்பு",
+    extractingFrames: "பிரேம்கள் எடுக்கப்பட்டு ஆடியோ படியெடுக்கப்படுகிறது…",
   },
 } as const;
 

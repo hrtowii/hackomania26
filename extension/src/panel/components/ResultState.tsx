@@ -67,6 +67,89 @@ export function ResultState({ result, onReset, lang }: { result: AnalysisResult;
         </div>
       </div>
 
+      {result.ai_detection && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{
+            fontSize: 10, color: "#666", fontWeight: 700,
+            letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6,
+          }}>
+            AI / DEEPFAKE DETECTION
+          </div>
+          <div style={{
+            background: result.ai_detection.verdict === "real"
+              ? "#22c55e18"
+              : result.ai_detection.verdict === "inconclusive"
+                ? "#f59e0b18"
+                : "#ef444418",
+            border: `1px solid ${result.ai_detection.verdict === "real"
+                ? "#22c55e44"
+                : result.ai_detection.verdict === "inconclusive"
+                  ? "#f59e0b44"
+                  : "#ef444444"
+              }`,
+            borderRadius: 10, padding: "12px 14px",
+          }}>
+            {/* Verdict row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+              <span style={{ fontSize: 24 }}>
+                {result.ai_detection.verdict === "real" ? "✅"
+                  : result.ai_detection.verdict === "ai-generated" ? "🤖"
+                    : result.ai_detection.verdict === "deepfake" ? "🎭"
+                      : "❓"}
+              </span>
+              <div>
+                <div style={{
+                  fontSize: 15, fontWeight: 700,
+                  color: result.ai_detection.verdict === "real"
+                    ? "#22c55e"
+                    : result.ai_detection.verdict === "inconclusive"
+                      ? "#f59e0b"
+                      : "#ef4444",
+                }}>
+                  {result.ai_detection.verdict === "real" ? "Appears Real"
+                    : result.ai_detection.verdict === "ai-generated" ? "AI Generated"
+                      : result.ai_detection.verdict === "deepfake" ? "Deepfake Detected"
+                        : "Inconclusive"}
+                </div>
+                <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>
+                  {result.ai_detection.confidence}% confidence
+                </div>
+              </div>
+              {/* Confidence bar */}
+              <div style={{ flex: 1, height: 6, background: "#2a2a4e", borderRadius: 3, overflow: "hidden" }}>
+                <div style={{
+                  height: "100%",
+                  width: `${result.ai_detection.confidence}%`,
+                  background: result.ai_detection.verdict === "real"
+                    ? "#22c55e"
+                    : result.ai_detection.verdict === "inconclusive"
+                      ? "#f59e0b"
+                      : "#ef4444",
+                  borderRadius: 3,
+                  transition: "width 0.5s ease",
+                }} />
+              </div>
+            </div>
+
+            {/* Signals list */}
+            {result.ai_detection.signals.length > 0 && (
+              <div>
+                <div style={{ fontSize: 10, color: "#666", marginBottom: 5 }}>SIGNALS DETECTED</div>
+                {result.ai_detection.signals.map((signal, i) => (
+                  <div key={i} style={{
+                    fontSize: 11, color: "#c0c0e0", lineHeight: 1.6,
+                    paddingLeft: 10, borderLeft: "2px solid #3a3a5e",
+                    marginBottom: 4,
+                  }}>
+                    {signal}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <Section title={t.summary}>
         <p style={{ fontSize: 13, lineHeight: 1.6, color: "#c0c0e0" }}>{result.summary}</p>
       </Section>

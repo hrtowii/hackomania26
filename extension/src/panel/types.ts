@@ -1,7 +1,7 @@
 import type { WhatsAppClassification } from "./constants";
 import type { PendingAnalysis } from "../background/index";
 
-export type Mode = "picker" | "text" | "audio" | "speech" | "image";
+export type Mode = "picker" | "text" | "audio" | "speech" | "image" | "video";
 
 export interface CrossReference {
   title: string;
@@ -20,6 +20,11 @@ export interface AnalysisResult {
   key_claims: string[];
   recommendation: string;
   audio_url?: string;
+  ai_detection?: {
+    verdict: "real" | "ai-generated" | "deepfake" | "inconclusive";
+    confidence: number; // 0-100
+    signals: string[];
+  };
 }
 
 export type AppState =
