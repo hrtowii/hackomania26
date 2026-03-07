@@ -507,25 +507,34 @@ function isOnWhatsApp(): boolean {
 // ─── Telegram FactCheck Feature ──────────────────────────────────────────────
 
 
-const TG_HOSTNAME = "web.telegram.org";
+const TG_HOSTNAMES = new Set([
+  "web.telegram.org",
+  "webk.telegram.org",
+  "webz.telegram.org",
+]);
 const TG_FACTCHECK_BTN_CLASS = "tl-tg-factcheck-btn";
 
 
 /** Selector that matches a message bubble in both Telegram Web A and K. */
-const TG_MSG_SELECTOR = "[data-message-id], [data-mid]";
+const TG_MSG_SELECTOR =
+  "[data-message-id], [data-mid], .message[data-peer-id], .Message, .Bubble";
 
 
 function isOnTelegram(): boolean {
-  return window.location.hostname === TG_HOSTNAME;
+  const hostname = window.location.hostname.toLowerCase();
+  if (TG_HOSTNAMES.has(hostname)) return true;
+  return /^web[a-z-]*\.telegram\.org$/.test(hostname);
 }
 
 
 function getTelegramMessageText(msgEl: Element): string {
-  // Web A — rich text lives in .text-content; Web K — plain text in a <p>
-  const textContent = msgEl.querySelector(".text-content");
-  const bodyText = textContent?.textContent?.trim()
-    ?? msgEl.querySelector("p")?.textContent?.trim()
-    ?? "";
+  // Different Telegram Web builds use different text containers.
+  const bodyText =
+    msgEl.querySelector(".text-content")?.textContent?.trim() ??
+    msgEl.querySelector(".translatable-message")?.textContent?.trim() ??
+    msgEl.querySelector(".message-text")?.textContent?.trim() ??
+    msgEl.querySelector("p")?.textContent?.trim() ??
+    "";
 
 
   // Detect media types — sticker, photo, video, document, gif, audio, voice
@@ -872,6 +881,5 @@ if (!(globalThis as Record<string, unknown>)[INIT_KEY]) {
   if (isOnWhatsApp()) setupWhatsAppObserver();
   if (isOnTelegram()) setupTelegramObserver();
 }
-
 
 
