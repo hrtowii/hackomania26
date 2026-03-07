@@ -26,16 +26,6 @@ export interface AnalyzeUrlMessage {
   targetUrl?: string;
 }
 
-export interface AnalyzeUrlMessage {
-  type: "ANALYZE_URL";
-  targetUrl?: string;
-}
-
-export interface AnalyzeUrlMessage {
-  type: "ANALYZE_URL";
-  targetUrl?: string;
-}
-
 // ─── Button helpers ───────────────────────────────────────────────────────────
 
 
@@ -311,7 +301,6 @@ async function fetchScamAnalysis(
       targetUrl,
     } satisfies AnalyzeUrlMessage) as ScamResult | null;
 
-
     if (!result) return null;
     if (typeof result.safetyScore !== "number") return null;
     if (typeof result.summary !== "string") return null;
@@ -480,8 +469,7 @@ async function handleDocumentSubmit(e: SubmitEvent): Promise<void> {
   const result = await fetchScamAnalysis(targetUrl);
   form.style.opacity = "";
 
-
-  if (!result || result.safetyScore <= 70) {
+  if (!result || result.safetyScore <= 100) {
     scamCheckInProgress = true;
     form.submit();
     scamCheckInProgress = false;

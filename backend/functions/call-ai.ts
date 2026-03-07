@@ -1,7 +1,6 @@
 import { OpenAI } from "openai";
 import type { ChatMessage } from "../src/types";
 import { exaSearch } from "./search";
-import type { ExaResult } from "./search";
 
 export { type ChatMessage };
 
