@@ -20,6 +20,17 @@ export interface PendingAnalysis {
   timestamp: number;
 }
 
+function enqueuePendingAnalysis(tabId: number, text: string, sourceUrl: string): void {
+  const pending: PendingAnalysis = {
+    text,
+    sourceUrl,
+    timestamp: Date.now(),
+  };
+
+  chrome.sidePanel.open({ tabId });
+  chrome.storage.session.set({ [STORAGE_KEY]: pending });
+}
+
 // ─── Side panel + context menu setup ─────────────────────────────────────────
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -46,16 +57,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   const text = info.selectionText?.trim() ?? "";
   if (!text) return;
 
-  const pending: PendingAnalysis = {
-    text,
-    sourceUrl: tab?.url ?? info.pageUrl ?? "",
-    timestamp: Date.now(),
-  };
-
-  // Open the side panel first — we are directly inside a user-gesture handler,
-  // so Chrome will allow this call. Store afterwards.
-  chrome.sidePanel.open({ tabId });
-  chrome.storage.session.set({ [STORAGE_KEY]: pending });
+  enqueuePendingAnalysis(tabId, text, tab?.url ?? info.pageUrl ?? "");
 });
 
 // ─── Message handler (floating button in content script) ──────────────────────
@@ -67,15 +69,6 @@ chrome.runtime.onMessage.addListener(
     const tabId = sender.tab?.id;
     if (tabId == null) return;
 
-    const pending: PendingAnalysis = {
-      text: message.text,
-      sourceUrl: message.sourceUrl,
-      timestamp: Date.now(),
-    };
-
-    // Open the side panel immediately while still in the message-handler
-    // synchronous frame, then persist the data.
-    chrome.sidePanel.open({ tabId });
-    chrome.storage.session.set({ [STORAGE_KEY]: pending });
+    enqueuePendingAnalysis(tabId, message.text, message.sourceUrl);
   }
 );

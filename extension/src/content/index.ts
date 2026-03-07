@@ -6,6 +6,9 @@
  */
 
 const BUTTON_ID = "truthlens-analyze-btn";
+const SCAM_POPUP_ID = "truthlens-scam-popup";
+const UI_ATTR = "data-truthlens-ui";
+const INIT_KEY = "__truthlensHandlersInitialized";
 
 // ─── Message types (shared with background) ──────────────────────────────────
 
@@ -21,11 +24,25 @@ function removeButton(): void {
   document.getElementById(BUTTON_ID)?.remove();
 }
 
+function markTruthLensUi(el: HTMLElement): void {
+  el.setAttribute(UI_ATTR, "true");
+}
+
+function isTruthLensUiTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  return Boolean(
+    target.closest(`[${UI_ATTR}]`) ||
+    target.closest(`#${BUTTON_ID}`) ||
+    target.closest(`#${SCAM_POPUP_ID}`)
+  );
+}
+
 function createButton(x: number, y: number, selectedText: string): void {
   removeButton();
 
   const btn = document.createElement("button");
   btn.id = BUTTON_ID;
+  markTruthLensUi(btn);
   btn.textContent = "🔍 Analyze with TruthLens";
 
   Object.assign(btn.style, {
@@ -98,25 +115,8 @@ function handleSelectionChange(): void {
 // Debounce to avoid thrashing on rapid selection changes
 let debounceTimer: ReturnType<typeof setTimeout>;
 
-document.addEventListener("mouseup", () => {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(handleSelectionChange, 80);
-});
-
-// Hide button if user clicks elsewhere without selecting anything
-document.addEventListener("mousedown", (e) => {
-  const btn = document.getElementById(BUTTON_ID);
-  if (btn && !btn.contains(e.target as Node)) {
-    removeButton();
-  }
-});
-
-// Hide on scroll so the fixed button doesn't drift from the text
-document.addEventListener("scroll", removeButton, { passive: true });
-
 // ─── Scam Detection ───────────────────────────────────────────────────────────
 
-const SCAM_POPUP_ID = "truthlens-scam-popup";
 const BACKEND_URL = "http://localhost:3000";
 
 /** Set to true while we programmatically re-fire a click/submit so the
@@ -134,11 +134,6 @@ const pendingElements = new WeakSet<HTMLElement>();
  *  form submits triggered by keyboard / Enter key. */
 let lastMouseX = window.innerWidth / 2;
 let lastMouseY = window.innerHeight / 2;
-
-document.addEventListener("mousemove", (e) => {
-  lastMouseX = e.clientX;
-  lastMouseY = e.clientY;
-}, { passive: true });
 
 function removeScamPopup(): void {
   document.getElementById(SCAM_POPUP_ID)?.remove();
@@ -181,6 +176,7 @@ function showScamPopup(
 
   const popup = document.createElement("div");
   popup.id = SCAM_POPUP_ID;
+  markTruthLensUi(popup);
 
   popup.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
@@ -276,135 +272,145 @@ async function fetchScamAnalysis(
   }
 }
 
-// ─── Click interceptor (capture phase — runs before page handlers) ────────────
+// ─── Global document handlers ─────────────────────────────────────────────────
 
-document.addEventListener(
-  "click",
-  async (e: MouseEvent) => {
-    if (scamCheckInProgress) return;
+function handleDocumentMouseUp(): void {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(handleSelectionChange, 80);
+}
 
-    const target = e.target as HTMLElement;
-    // Ignore clicks that originate inside our own popup
-    if (target.closest(`#${SCAM_POPUP_ID}`)) return;
+function handleDocumentMouseDown(e: MouseEvent): void {
+  if (isTruthLensUiTarget(e.target)) return;
 
-    const el = target.closest(
-      "a, button, input[type=submit], input[type=button], [role=button]"
-    ) as HTMLElement | null;
-    if (!el) return;
+  const btn = document.getElementById(BUTTON_ID);
+  if (btn && !btn.contains(e.target as Node)) {
+    removeButton();
+  }
 
-    // User already approved this element — let it through and clear the approval
-    if (approvedElements.has(el)) {
-      approvedElements.delete(el);
-      return;
-    }
-
-    // Analysis already in-flight for this element — treat re-click as proceed
-    if (pendingElements.has(el)) {
-      approvedElements.add(el); // mark so the natural click passes through
-      return;
-    }
-
-    // Determine destination
-    let targetUrl: string | undefined;
-    if (el.tagName === "A") {
-      const href = (el as HTMLAnchorElement).href;
-      // Skip pure hash anchors on the same page
-      if (href && !href.startsWith(window.location.origin + "#")) {
-        targetUrl = href;
-      }
-    } else {
-      const form = el.closest("form") as HTMLFormElement | null;
-      if (form?.action) targetUrl = form.action;
-    }
-
-    e.preventDefault();
-    e.stopImmediatePropagation();
-
-    const buttonText =
-      (el.textContent?.trim().slice(0, 120)) ||
-      ((el as HTMLInputElement).value?.slice(0, 120));
-
-    // Dim element to signal processing
-    const prevOpacity = el.style.opacity;
-    el.style.opacity = "0.5";
-    pendingElements.add(el);
-    const result = await fetchScamAnalysis(targetUrl, buttonText);
-    pendingElements.delete(el);
-    el.style.opacity = prevOpacity;
-
-    // If the user already re-clicked during analysis, just proceed
-    if (approvedElements.has(el)) {
-      approvedElements.delete(el);
-      scamCheckInProgress = true;
-      el.click();
-      scamCheckInProgress = false;
-      return;
-    }
-
-    if (!result || result.safetyScore > 100) {
-      // Safe or analysis unavailable — proceed transparently
-      scamCheckInProgress = true;
-      el.click();
-      scamCheckInProgress = false;
-      return;
-    }
-
-    // Risky — show warning popup
-    // Pre-approve the element so that clicking it again (step 4) passes through
-    approvedElements.add(el);
-    const proceedBtn = showScamPopup(e.clientX, e.clientY, result.safetyScore, result.summary);
-    proceedBtn.addEventListener("click", () => {
-      removeScamPopup();
-      el.click(); // approvedElements already has el, so it passes through
-    });
-    document.getElementById("scam-cancel-btn")!.addEventListener("click", () => {
-      approvedElements.delete(el); // revoke approval on cancel
-      removeScamPopup();
-    }, { once: true });
-  },
-  true // capture phase
-);
-
-// ─── Form submit interceptor ──────────────────────────────────────────────────
-
-document.addEventListener(
-  "submit",
-  async (e: SubmitEvent) => {
-    if (scamCheckInProgress) return;
-
-    const form = e.target as HTMLFormElement;
-    e.preventDefault();
-    e.stopImmediatePropagation();
-
-    const targetUrl = form.action || window.location.href;
-    const submitLabel = (e.submitter as HTMLElement | null)?.textContent?.trim().slice(0, 120);
-
-    form.style.opacity = "0.5";
-    const result = await fetchScamAnalysis(targetUrl, submitLabel ?? "Submit");
-    form.style.opacity = "";
-
-    if (!result || result.safetyScore > 100) {
-      scamCheckInProgress = true;
-      form.submit();
-      scamCheckInProgress = false;
-      return;
-    }
-
-    const proceedBtn = showScamPopup(lastMouseX, lastMouseY, result.safetyScore, result.summary);
-    proceedBtn.addEventListener("click", () => {
-      removeScamPopup();
-      scamCheckInProgress = true;
-      form.submit();
-      scamCheckInProgress = false;
-    });
-  },
-  true // capture phase
-);
-
-// Dismiss popup when clicking outside of it
-document.addEventListener("mousedown", (e) => {
   const popup = document.getElementById(SCAM_POPUP_ID);
   if (popup && !popup.contains(e.target as Node)) {
     removeScamPopup();
   }
-});
+}
+
+function handleDocumentMouseMove(e: MouseEvent): void {
+  lastMouseX = e.clientX;
+  lastMouseY = e.clientY;
+}
+
+async function handleDocumentClick(e: MouseEvent): Promise<void> {
+  if (scamCheckInProgress) return;
+  if (isTruthLensUiTarget(e.target)) return;
+
+  const target = e.target as HTMLElement;
+  const el = target.closest(
+    "a, button, input[type=submit], input[type=button], [role=button]"
+  ) as HTMLElement | null;
+  if (!el) return;
+
+  if (approvedElements.has(el)) {
+    approvedElements.delete(el);
+    return;
+  }
+
+  if (pendingElements.has(el)) {
+    approvedElements.add(el);
+    return;
+  }
+
+  let targetUrl: string | undefined;
+  if (el.tagName === "A") {
+    const href = (el as HTMLAnchorElement).href;
+    if (href && !href.startsWith(window.location.origin + "#")) {
+      targetUrl = href;
+    }
+  } else {
+    const form = el.closest("form") as HTMLFormElement | null;
+    if (form?.action) targetUrl = form.action;
+  }
+
+  e.preventDefault();
+  e.stopImmediatePropagation();
+
+  const buttonText =
+    (el.textContent?.trim().slice(0, 120)) ||
+    ((el as HTMLInputElement).value?.slice(0, 120));
+
+  const prevOpacity = el.style.opacity;
+  el.style.opacity = "0.5";
+  pendingElements.add(el);
+  const result = await fetchScamAnalysis(targetUrl, buttonText);
+  pendingElements.delete(el);
+  el.style.opacity = prevOpacity;
+
+  if (approvedElements.has(el)) {
+    approvedElements.delete(el);
+    scamCheckInProgress = true;
+    el.click();
+    scamCheckInProgress = false;
+    return;
+  }
+
+  if (!result || result.safetyScore > 100) {
+    scamCheckInProgress = true;
+    el.click();
+    scamCheckInProgress = false;
+    return;
+  }
+
+  approvedElements.add(el);
+  const proceedBtn = showScamPopup(e.clientX, e.clientY, result.safetyScore, result.summary);
+  proceedBtn.addEventListener("click", () => {
+    removeScamPopup();
+    el.click();
+  });
+  document.getElementById("scam-cancel-btn")!.addEventListener("click", () => {
+    approvedElements.delete(el);
+    removeScamPopup();
+  }, { once: true });
+}
+
+async function handleDocumentSubmit(e: SubmitEvent): Promise<void> {
+  if (scamCheckInProgress) return;
+  if (isTruthLensUiTarget(e.target)) return;
+
+  const form = e.target as HTMLFormElement;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+
+  const targetUrl = form.action || window.location.href;
+  const submitLabel = (e.submitter as HTMLElement | null)?.textContent?.trim().slice(0, 120);
+
+  form.style.opacity = "0.5";
+  const result = await fetchScamAnalysis(targetUrl, submitLabel ?? "Submit");
+  form.style.opacity = "";
+
+  if (!result || result.safetyScore > 100) {
+    scamCheckInProgress = true;
+    form.submit();
+    scamCheckInProgress = false;
+    return;
+  }
+
+  const proceedBtn = showScamPopup(lastMouseX, lastMouseY, result.safetyScore, result.summary);
+  proceedBtn.addEventListener("click", () => {
+    removeScamPopup();
+    scamCheckInProgress = true;
+    form.submit();
+    scamCheckInProgress = false;
+  });
+}
+
+function setupGlobalDocumentHandlers(): void {
+  document.addEventListener("mouseup", handleDocumentMouseUp);
+  document.addEventListener("mousedown", handleDocumentMouseDown);
+  document.addEventListener("scroll", removeButton, { passive: true });
+  document.addEventListener("mousemove", handleDocumentMouseMove, { passive: true });
+  document.addEventListener("click", handleDocumentClick, true);
+  document.addEventListener("submit", handleDocumentSubmit, true);
+}
+
+if (!(globalThis as Record<string, unknown>)[INIT_KEY]) {
+  (globalThis as Record<string, unknown>)[INIT_KEY] = true;
+  setupGlobalDocumentHandlers();
+}
