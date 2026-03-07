@@ -38,7 +38,7 @@ export const analyzeTextRoute = new Elysia().post(
   async ({ body }) => {
     const LangChosen = LANGUAGE_NAMES[body.preferred_language ?? "en"] ?? "English";
 
-    console.log("📥 [1/4] Request received:", {
+    console.log("[1/4] Request received:", {
       textLength: body.text.length,
       language: LangChosen,
       source: body.source_url || "none",
@@ -120,6 +120,10 @@ export const analyzeTextRoute = new Elysia().post(
       },
     });
 
+    console.log(`[3/4] AI responded in ${((Date.now() - start) / 1000).toFixed(1)}s`);
+    // console.log("📄 Raw length:", raw?.length ?? 0);
+    // console.log("📄 Raw preview:", raw?.slice(0, 200));
+    // console.log("🔗 Exa results:", searchResults.length);
     console.log(`✅ [4/5] AI responded in ${((Date.now() - start) / 1000).toFixed(1)}s`);
     console.log("📄 Raw length:", raw?.length ?? 0);
     console.log("📄 Raw preview:", raw?.slice(0, 200));
@@ -149,7 +153,7 @@ export const analyzeTextRoute = new Elysia().post(
       let source = "External source";
       try {
         source = new URL(item.url).hostname.replace(/^www\./, "");
-      } catch {}
+      } catch { }
       return {
         title: item.title?.trim() || source,
         source,
