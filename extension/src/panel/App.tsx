@@ -14,8 +14,23 @@ import { TextInputView } from "./components/TextInputView";
 import { AudioFileView } from "./components/AudioFileView";
 import { SpeechView } from "./components/SpeechView";
 import { ImageUploadView } from "./components/ImageUploadView";
-import { VideoUploadView } from "./components/Videouploadview";
-import { cardStyle, btnPrimary, btnSecondary, translations } from "./constants";
+import { cardStyle } from "./constants";
+import { btnPrimary, btnSecondary, translations } from "./constants";
+import { BACKEND_URL } from "./constants";
+import type { Language } from "./constants";
+import type { AnalysisResult, AppState, Mode } from "./types";
+import { Header } from "./components/Header";
+import { LanguagePicker } from "./components/LanguagePicker";
+import { LoadingState } from "./components/LoadingState";
+import { ResultState } from "./components/ResultState";
+import { ErrorState } from "./components/ErrorState";
+import { ModePicker } from "./components/ModePicker";
+import { TextInputView } from "./components/TextInputView";
+import { AudioFileView } from "./components/AudioFileView";
+import { SpeechView } from "./components/SpeechView";
+import { ImageUploadView } from "./components/ImageUploadView";
+import { cardStyle } from "./constants";
+import { btnPrimary, btnSecondary, translations } from "./constants";
 
 export default function App() {
   const [state, setState] = useState<AppState>({ status: "idle" });
@@ -74,11 +89,18 @@ export default function App() {
     }
   }
 
-  function reset() {
+    function reset() {
     chrome.storage.session.remove(STORAGE_KEY);
     setState({ status: "idle" });
     setMode("picker");
     setPendingTranscript("");
+  }
+
+  function handleLanguageChange(lang: Language) {
+    setLanguage(lang);
+    if (state.status === "success" && lastInput) {
+      analyzeText(lastInput.text, lastInput.sourceUrl);
+    }
   }
 
   function handleLanguageChange(lang: Language) {
@@ -95,7 +117,7 @@ export default function App() {
       <Header lang={language} showBack={showBack} onBack={reset} />
       <LanguagePicker language={language} onChange={handleLanguageChange} />
 
-      {state.status === "loading" && <LoadingState lang={language} transcript={pendingTranscript} />}
+      {state.status === "loading" && <LoadingState lang={language} />}
       {state.status === "success" && <ResultState result={state.result} onReset={reset} lang={language} />}
       {state.status === "error" && <ErrorState message={state.message} onRetry={reset} lang={language} />}
 

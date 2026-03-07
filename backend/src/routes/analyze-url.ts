@@ -13,6 +13,17 @@ function normalizeClassification(value: unknown): "legitimate" | "misleading" | 
   if (text.includes("legit") || text.includes("reliable") || text.includes("safe") || text.includes("informational")) return "legitimate";
   return "unverified";
 }
+import { postMessageCheck } from "../../functions/postMessageCheck";
+
+function normalizeClassification(value: unknown): "legitimate" | "misleading" | "scam" | "suspicious" | "unverified" {
+  const text = String(value ?? "").toLowerCase();
+
+  if (text.includes("scam") || text.includes("fraud") || text.includes("phish")) return "scam";
+  if (text.includes("mislead") || text.includes("false") || text.includes("fake") || text.includes("hoax")) return "misleading";
+  if (text.includes("suspic") || text.includes("dubious") || text.includes("questionable")) return "suspicious";
+  if (text.includes("legit") || text.includes("reliable") || text.includes("safe") || text.includes("informational")) return "legitimate";
+  return "unverified";
+}
 
 const SYSTEM_PROMPT =
   "You are a credibility and scam-detection assistant specialised in Singapore cybercrime patterns. " +
@@ -20,6 +31,10 @@ const SYSTEM_PROMPT =
   "(impersonation of SG government agencies, local bank phishing, job scams, investment scams, " +
   "fake e-commerce, urgency tactics, typosquatted .gov.sg / .com.sg domains), " +
   "use exa_search to cross-reference claims against credible sources, " +
+  "then return your structured analysis.\n\n" +
+  "Use ONLY these enum values exactly as written:\n" +
+  "  • cross_references[].contradiction_level: 'low' | 'medium' | 'high'\n" +
+  "For each cross_references entry, set url to the exact URL returned by exa_search.";
   "then return your structured analysis.\n\n" +
   "Use ONLY these enum values exactly as written:\n" +
   "  • cross_references[].contradiction_level: 'low' | 'medium' | 'high'\n" +
@@ -39,6 +54,8 @@ export const analyzeUrlRoute = new Elysia().post(
 
     const prompt =
       `URL: ${body.url}\n\n` +
+      `cross_references[].contradiction_level must be exactly one of: "low", "medium", "high". Never use "none".\n` +
+      `For each cross_references entry, set url to the exact URL returned by exa_search.\n\n` +
       `cross_references[].contradiction_level must be exactly one of: "low", "medium", "high". Never use "none".\n` +
       `For each cross_references entry, set url to the exact URL returned by exa_search.\n\n` +
       `Page content:\n\n${pageMarkdown.slice(0, 12000)}`; // cap to ~12k chars

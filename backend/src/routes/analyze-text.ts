@@ -2,7 +2,15 @@ import { Elysia } from "elysia";
 import { AnalyzeTextBody, AnalysisAiOutputSchema, AnalysisResponse } from "../types";
 import type { TAnalysisAiOutput, TAnalysisResponse } from "../types";
 import { callAiWithSearch } from "../../functions/call-ai";
-import { postMessageCheck } from "../../functions/postMessageCheck";
+import { embedText } from "../../functions/embeddings";
+import {randomUUID} from "crypto"
+ import { postMessageCheck } from "../../functions/postMessageCheck";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  Bun.env.SUPABASE_URL!,
+  (Bun.env.SUPABASE_SERVICE_ROLE_KEY ?? Bun.env.SUPABASE_ANON_KEY)!
+);
 
 const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
@@ -31,7 +39,7 @@ export const analyzeTextRoute = new Elysia().post(
   async ({ body }) => {
     const LangChosen = LANGUAGE_NAMES[body.preferred_language ?? "en"] ?? "English";
 
-    console.log("[1/4] Request received:", {
+    console.log("[1/5] Request received:", {
       textLength: body.text.length,
       language: LangChosen,
       source: body.source_url || "none",
@@ -42,26 +50,83 @@ export const analyzeTextRoute = new Elysia().post(
       `in ${LangChosen}. Do not use English unless ${LangChosen} is English.\n\n` +
       `cross_references[].contradiction_level must be exactly one of: "low", "medium", "high". Never use "none".\n` +
       `For each cross_references entry, set url to the exact URL returned by exa_search.\n\n` +
+      `cross_references[].contradiction_level must be exactly one of: "low", "medium", "high". Never use "none".\n` +
+      `For each cross_references entry, set url to the exact URL returned by exa_search.\n\n` +
       `${body.source_url ? `Source URL: ${body.source_url}\n` : ""}` +
       `${body.preferred_language ? `Respond in language: ${body.preferred_language}\n` : ""}` +
       `Text:\n\n${body.text}`;
+    console.log("🔍 [2/5] Comparing with scams in the database...");
+    function normalizeText(input: string): string {
+      return input.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
+    }
+    const embeddings = await embedText(normalizeText(body.text));
+    // ADD embedding search here and return the 5 closest matches (debug)
+    console.log("🧠 embedding length:", embeddings.length);
+    
+    try {
+      const { data: matches, error } = await supabase.rpc("match_message_checks", {
+        query_embedding: embeddings,
+        match_count: 5,
+        min_similarity: 0.90, // tune later (0.82–0.90)
+      });
+      if (error) {
+        console.error("Embedding RPC error:", error.message);
+      } else {
+        const results = (matches ?? []) as Array<{
+          message_check_id: string;
+          similarity: number;
+          credibility_score: number;
+          summary: string;
+          recommendation: string;
+          content_text: string;
+        }>;
 
-    console.log("[2/4] Calling AI with web search...");
+        // Flag “known scam/misinfo” candidates: high similarity + low credibility
+        const suspicious = results.filter(
+          (m) => m.similarity >= 0.90 && (m.credibility_score ?? 100) <= 90
+        );
+
+        if (suspicious.length > 0) {
+          const best = suspicious[0];
+
+          console.log("🚨 Similar scam/misinfo found in DB:", {
+            id: best.message_check_id,
+            similarity: best.similarity,
+            credibility: best.credibility_score,
+          });
+
+          // Return early: reuse stored analysis (skip AI)
+          return {
+            credibility_score: best.credibility_score,
+            summary: best.summary,
+            recommendation: best.recommendation,
+            bias_detected: [], // optional: you can store these in DB and return them too
+            key_claims: [],
+            cross_references: [],
+            analysis_id: randomUUID(),
+          } satisfies TAnalysisResponse;
+        }
+      }
+    } catch (e) {
+      console.error("Embedding search failed:", e);
+    }
+
+    console.log("🔍 [3/5] Calling AI with web search...");
     const start = Date.now();
 
     const { text: raw, searchResults } = await callAiWithSearch(prompt, {
-      systemPrompt: SYSTEM_PROMPT,
-      responseFormat: {
-        type: "json_schema",
-        json_schema: {
-          name: "analysis",
-          strict: true,
-          schema: JSON.parse(JSON.stringify(AnalysisAiOutputSchema)),
-        },
-      },
-    });
+          systemPrompt: SYSTEM_PROMPT,
+          responseFormat: {
+            type: "json_schema",
+            json_schema: {
+              name: "analysis",
+              strict: true,
+              schema: JSON.parse(JSON.stringify(AnalysisAiOutputSchema)),
+            },
+          },
+        });
 
-    console.log(`[3/4] AI responded in ${((Date.now() - start) / 1000).toFixed(1)}s`);
+    console.log(`[4/5] AI responded in ${((Date.now() - start) / 1000).toFixed(1)}s`);
     // console.log("📄 Raw length:", raw?.length ?? 0);
     // console.log("📄 Raw preview:", raw?.slice(0, 200));
     // console.log("🔗 Exa results:", searchResults.length);
@@ -99,8 +164,7 @@ export const analyzeTextRoute = new Elysia().post(
       };
     });
 
-    console.log("[4/4] Done. score:", output.credibility_score);
-
+    console.log("🎉 [5/5] Done. score:", output.credibility_score);
     let db_id: string | undefined;
     try {
       const inserted = await postMessageCheck({
