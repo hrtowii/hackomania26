@@ -63,7 +63,7 @@ const translations = {
     crossReferences: "Cross-References",
     analyzeAnother: "Analyze another selection",
     back: "Back",
-    
+
     // Mode picker
     modePickerTitle: "How would you like to fact-check today?",
     modeText: "Paste / Type Text",
@@ -74,12 +74,12 @@ const translations = {
     modeSpeechDesc: "Record live speech via your microphone",
     modeImage: "Upload Screenshot",
     modeImageDesc: "Check images or forwarded photos for misleading content",
-    
+
     // Text input
     pasteOrType: "PASTE OR TYPE TEXT",
     textPlaceholder: "Paste a news headline, WhatsApp message, social media post…",
     analyzeText: "Analyze Text",
-    
+
     // Audio
     uploadAudioFile: "UPLOAD AUDIO FILE",
     dropToUpload: "Drop to upload",
@@ -88,7 +88,7 @@ const translations = {
     transcribing: "Transcribing…",
     transcribeAndAnalyze: "Transcribe & Analyse",
     transcriptionFailed: "Transcription failed — check that the backend /transcribe endpoint is running.",
-    
+
     // Speech
     listening: "● Listening…",
     tapMicToStart: "Tap mic to start",
@@ -99,7 +99,7 @@ const translations = {
     clear: "Clear",
     speechNotSupported: "Speech recognition not supported in this browser.",
     microphoneError: "Microphone error — check browser permissions.",
-    
+
     // Image
     uploadScreenshots: "UPLOAD SCREENSHOT(S)",
     imageDesc: "Check images or forwarded photos for misleading visuals or fake headlines. Up to",
@@ -112,18 +112,18 @@ const translations = {
     image: "image",
     images: "images",
     imageFailed: "Image analysis failed — check that the backend /analyze-image endpoint is running.",
-    
+
     // States
     selectedText: "SELECTED TEXT",
     analyze: "Analyze",
     dismiss: "Dismiss",
-    
+
     // Contradiction levels
     lowContradiction: "low contradiction",
     mediumContradiction: "medium contradiction",
     highContradiction: "high contradiction",
   },
-  
+
   zh: {
     appName: "真相透镜",
     responseLanguage: "回复语言",
@@ -136,7 +136,7 @@ const translations = {
     crossReferences: "交叉引用",
     analyzeAnother: "分析另一个选择",
     back: "返回",
-    
+
     modePickerTitle: "您今天想如何进行事实核查？",
     modeText: "粘贴/输入文本",
     modeTextDesc: "粘贴新闻片段、WhatsApp消息或任何声明",
@@ -146,11 +146,11 @@ const translations = {
     modeSpeechDesc: "通过麦克风录制实时语音",
     modeImage: "上传截图",
     modeImageDesc: "检查图片或转发的照片是否有误导性内容",
-    
+
     pasteOrType: "粘贴或输入文本",
     textPlaceholder: "粘贴新闻标题、WhatsApp消息、社交媒体帖子…",
     analyzeText: "分析文本",
-    
+
     uploadAudioFile: "上传音频文件",
     dropToUpload: "放下以上传",
     dragOrClick: "拖放或点击选择",
@@ -158,7 +158,7 @@ const translations = {
     transcribing: "转录中…",
     transcribeAndAnalyze: "转录并分析",
     transcriptionFailed: "转录失败 — 请检查后端 /transcribe 端点是否正在运行。",
-    
+
     listening: "● 正在听…",
     tapMicToStart: "点击麦克风开始",
     speechSupport: "支持英语、普通话、马来语和泰米尔语。",
@@ -168,7 +168,7 @@ const translations = {
     clear: "清除",
     speechNotSupported: "此浏览器不支持语音识别。",
     microphoneError: "麦克风错误 — 请检查浏览器权限。",
-    
+
     uploadScreenshots: "上传截图",
     imageDesc: "检查图片或转发的照片是否有误导性视觉效果或虚假标题。最多",
     imageDescImages: "张图片。",
@@ -180,16 +180,16 @@ const translations = {
     image: "张图片",
     images: "张图片",
     imageFailed: "图片分析失败 — 请检查后端 /analyze-image 端点是否正在运行。",
-    
+
     selectedText: "选定的文本",
     analyze: "分析",
     dismiss: "关闭",
-    
+
     lowContradiction: "低矛盾",
     mediumContradiction: "中等矛盾",
     highContradiction: "高矛盾",
   },
-  
+
   ms: {
     appName: "TruthLens",
     responseLanguage: "BAHASA RESPONS",
@@ -202,7 +202,7 @@ const translations = {
     crossReferences: "Rujukan Silang",
     analyzeAnother: "Analisis pilihan lain",
     back: "Kembali",
-    
+
     modePickerTitle: "Bagaimana anda ingin menyemak fakta hari ini?",
     modeText: "Tampal / Taip Teks",
     modeTextDesc: "Tampal petikan berita, mesej WhatsApp, atau sebarang tuntutan",
@@ -212,11 +212,11 @@ const translations = {
     modeSpeechDesc: "Rakam ucapan langsung melalui mikrofon anda",
     modeImage: "Muat Naik Tangkapan Skrin",
     modeImageDesc: "Semak imej atau foto yang dimajukan untuk kandungan yang mengelirukan",
-    
+
     pasteOrType: "TAMPAL ATAU TAIP TEKS",
     textPlaceholder: "Tampal tajuk berita, mesej WhatsApp, hantaran media sosial…",
     analyzeText: "Analisis Teks",
-    
+
     uploadAudioFile: "MUAT NAIK FAIL AUDIO",
     dropToUpload: "Lepaskan untuk muat naik",
     dragOrClick: "Seret & lepas atau klik untuk pilih",
@@ -224,7 +224,7 @@ const translations = {
     transcribing: "Menyalin…",
     transcribeAndAnalyze: "Salin & Analisis",
     transcriptionFailed: "Penyalinan gagal — semak sama ada titik akhir backend /transcribe sedang berjalan.",
-    
+
     listening: "● Mendengar…",
     tapMicToStart: "Ketik mikrofon untuk mula",
     speechSupport: "Menyokong Bahasa Inggeris, Mandarin, Melayu & Tamil.",
@@ -234,7 +234,7 @@ const translations = {
     clear: "Padam",
     speechNotSupported: "Pengecaman pertuturan tidak disokong dalam pelayar ini.",
     microphoneError: "Ralat mikrofon — semak kebenaran pelayar.",
-    
+
     uploadScreenshots: "MUAT NAIK TANGKAPAN SKRIN",
     imageDesc: "Semak imej atau foto yang dimajukan untuk visual atau tajuk berita palsu yang mengelirukan. Sehingga",
     imageDescImages: "imej.",
@@ -246,16 +246,16 @@ const translations = {
     image: "imej",
     images: "imej",
     imageFailed: "Analisis imej gagal — semak sama ada titik akhir backend /analyze-image sedang berjalan.",
-    
+
     selectedText: "TEKS TERPILIH",
     analyze: "Analisis",
     dismiss: "Tutup",
-    
+
     lowContradiction: "percanggahan rendah",
     mediumContradiction: "percanggahan sederhana",
     highContradiction: "percanggahan tinggi",
   },
-  
+
   ta: {
     appName: "உண்மை லென்ஸ்",
     responseLanguage: "பதில் மொழி",
@@ -268,7 +268,7 @@ const translations = {
     crossReferences: "குறுக்கு குறிப்புகள்",
     analyzeAnother: "மற்றொரு தேர்வை பகுப்பாய்வு செய்க",
     back: "பின்செல்",
-    
+
     modePickerTitle: "இன்று நீங்கள் எவ்வாறு உண்மையை சரிபார்க்க விரும்புகிறீர்கள்?",
     modeText: "ஒட்டவும் / உரை தட்டச்சு செய்யவும்",
     modeTextDesc: "செய்தி துணுக்கு, WhatsApp செய்தி அல்லது ஏதேனும் கூற்றை ஒட்டவும்",
@@ -278,11 +278,11 @@ const translations = {
     modeSpeechDesc: "உங்கள் மைக்ரோஃபோன் மூலம் நேரலை பேச்சை பதிவு செய்க",
     modeImage: "திரை பிடிப்பை பதிவேற்றவும்",
     modeImageDesc: "தவறாக வழிநடத்தும் உள்ளடக்கத்திற்காக படங்கள் அல்லது அனுப்பப்பட்ட புகைப்படங்களை சரிபார்க்கவும்",
-    
+
     pasteOrType: "ஒட்டவும் அல்லது உரை தட்டச்சு செய்யவும்",
     textPlaceholder: "செய்தி தலைப்பு, WhatsApp செய்தி, சமூக ஊடக இடுகை ஒட்டவும்…",
     analyzeText: "உரையை பகுப்பாய்வு செய்க",
-    
+
     uploadAudioFile: "ஆடியோ கோப்பை பதிவேற்றவும்",
     dropToUpload: "பதிவேற்ற விடவும்",
     dragOrClick: "இழுத்து விடவும் அல்லது தேர்ந்தெடுக்க கிளிக் செய்யவும்",
@@ -290,7 +290,7 @@ const translations = {
     transcribing: "படியெடுக்கிறது…",
     transcribeAndAnalyze: "படியெடுத்து பகுப்பாய்வு செய்க",
     transcriptionFailed: "படியெடுப்பு தோல்வியடைந்தது — பின்புல /transcribe endpoint இயங்குகிறதா என சரிபார்க்கவும்.",
-    
+
     listening: "● கேட்கிறது…",
     tapMicToStart: "தொடங்க மைக்கை தட்டவும்",
     speechSupport: "ஆங்கிலம், மாண்டரின், மலாய் & தமிழை ஆதரிக்கிறது.",
@@ -300,7 +300,7 @@ const translations = {
     clear: "அழி",
     speechNotSupported: "இந்த உலாவியில் பேச்சு அங்கீகாரம் ஆதரிக்கப்படவில்லை.",
     microphoneError: "மைக்ரோஃபோன் பிழை — உலாவி அனுமதிகளை சரிபார்க்கவும்.",
-    
+
     uploadScreenshots: "திரை பிடிப்புகளை பதிவேற்றவும்",
     imageDesc: "தவறாக வழிநடத்தும் காட்சிகள் அல்லது போலி தலைப்புகளுக்காக படங்கள் அல்லது அனுப்பப்பட்ட புகைப்படங்களை சரிபார்க்கவும். அதிகபட்சம்",
     imageDescImages: "படங்கள்.",
@@ -312,11 +312,11 @@ const translations = {
     image: "படம்",
     images: "படங்கள்",
     imageFailed: "படம் பகுப்பாய்வு தோல்வியடைந்தது — பின்புல /analyze-image endpoint இயங்குகிறதா என சரிபார்க்கவும்.",
-    
+
     selectedText: "தேர்ந்தெடுக்கப்பட்ட உரை",
     analyze: "பகுப்பாய்வு செய்க",
     dismiss: "நிராகரி",
-    
+
     lowContradiction: "குறைந்த முரண்பாடு",
     mediumContradiction: "நடுத்தர முரண்பாடு",
     highContradiction: "உயர் முரண்பாடு",
@@ -480,6 +480,8 @@ function TextInputView({ onSubmit, lang }: { onSubmit: (text: string) => void; l
   );
 }
 
+// Add this to your App.tsx - replace the AudioFileView component
+
 function AudioFileView({ onTranscribed, lang }: { onTranscribed: (text: string) => void; lang: Language }) {
   const t = translations[lang];
   const [file, setFile] = useState<File | null>(null);
@@ -490,16 +492,98 @@ function AudioFileView({ onTranscribed, lang }: { onTranscribed: (text: string) 
 
   async function handleUpload() {
     if (!file) return;
-    setLoading(true); setError("");
+
+    console.log("=== FRONTEND: Starting audio upload ===");
+    console.log("File details:", {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      sizeKB: (file.size / 1024).toFixed(2) + " KB",
+      sizeMB: (file.size / 1024 / 1024).toFixed(2) + " MB",
+    });
+    console.log("Backend URL:", BACKEND_URL);
+    console.log("Endpoint:", `${BACKEND_URL}/transcribe`);
+
+    setLoading(true);
+    setError("");
+
     try {
       const form = new FormData();
       form.append("audio", file);
-      const res = await fetch(`${BACKEND_URL}/transcribe`, { method: "POST", body: form });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { text } = await res.json();
-      onTranscribed(text);
-    } catch {
-      setError(t.transcriptionFailed);
+
+      console.log("FormData created, sending request...");
+
+      const res = await fetch(`${BACKEND_URL}/transcribe`, {
+        method: "POST",
+        body: form
+      });
+
+      console.log("Response received:", {
+        status: res.status,
+        statusText: res.statusText,
+        ok: res.ok,
+        headers: Object.fromEntries(res.headers.entries()),
+      });
+
+      if (!res.ok) {
+        // Try to get error details from response
+        let errorText = "";
+        try {
+          errorText = await res.text();
+          console.error("Error response body:", errorText);
+        } catch (e) {
+          console.error("Could not read error response body");
+        }
+        throw new Error(`HTTP ${res.status}: ${errorText || res.statusText}`);
+      }
+
+      const responseText = await res.text();
+      console.log("Raw response text:", responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log("Parsed response data:", data);
+      } catch (e) {
+        console.error("Failed to parse JSON response:", e);
+        console.error("Response was:", responseText);
+        throw new Error("Invalid JSON response from server");
+      }
+
+      if (!data.text) {
+        console.error("Response missing 'text' field:", data);
+        throw new Error("Invalid response format - missing text field");
+      }
+
+      console.log("Transcription successful!");
+      console.log("Text length:", data.text.length, "characters");
+      console.log("Preview:", data.text.substring(0, 100));
+
+      onTranscribed(data.text);
+      console.log("=== FRONTEND: Upload complete ===");
+
+    } catch (err) {
+      console.error("=== FRONTEND: Upload failed ===");
+      console.error("Error type:", err?.constructor?.name);
+      console.error("Error message:", err instanceof Error ? err.message : String(err));
+      console.error("Full error:", err);
+
+      // Set user-friendly error message
+      let errorMessage = t.transcriptionFailed;
+
+      if (err instanceof Error) {
+        if (err.message.includes("Failed to fetch")) {
+          errorMessage = "Cannot connect to backend server. Is it running on localhost:3000?";
+        } else if (err.message.includes("HTTP 404")) {
+          errorMessage = "Endpoint not found. Check that /transcribe route is registered.";
+        } else if (err.message.includes("HTTP 500")) {
+          errorMessage = "Server error. Check backend logs for details.";
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -515,7 +599,10 @@ function AudioFileView({ onTranscribed, lang }: { onTranscribed: (text: string) 
         onDrop={(e) => {
           e.preventDefault(); setDragging(false);
           const f = e.dataTransfer.files[0];
-          if (f) setFile(f);
+          if (f) {
+            console.log("File dropped:", f.name, f.type, f.size);
+            setFile(f);
+          }
         }}
         style={{
           border: `2px dashed ${dragging ? "#7c3aed" : "#3a3a5e"}`,
@@ -537,10 +624,31 @@ function AudioFileView({ onTranscribed, lang }: { onTranscribed: (text: string) 
         </p>
         <p style={{ fontSize: 10, color: "#444", marginTop: 3 }}>{t.audioFormats}</p>
         <input ref={inputRef} type="file" accept="audio/*" style={{ display: "none" }}
-          onChange={(e) => { if (e.target.files?.[0]) setFile(e.target.files[0]); }} />
+          onChange={(e) => {
+            if (e.target.files?.[0]) {
+              const f = e.target.files[0];
+              console.log("File selected:", f.name, f.type, f.size);
+              setFile(f);
+            }
+          }} />
       </div>
 
-      {error && <p style={{ fontSize: 11, color: "#ef4444", marginBottom: 8 }}>{error}</p>}
+      {error && (
+        <div style={{
+          fontSize: 11,
+          color: "#ef4444",
+          marginBottom: 8,
+          padding: 8,
+          background: "#ef444411",
+          borderRadius: 4,
+          border: "1px solid #ef444433",
+        }}>
+          <strong>Error:</strong> {error}
+          <div style={{ marginTop: 4, fontSize: 10, color: "#ef4444aa" }}>
+            Check browser console (F12) for details
+          </div>
+        </div>
+      )}
 
       <button
         disabled={!file || loading}
@@ -554,6 +662,12 @@ function AudioFileView({ onTranscribed, lang }: { onTranscribed: (text: string) 
       >
         {loading ? t.transcribing : t.transcribeAndAnalyze}
       </button>
+
+      {loading && (
+        <p style={{ fontSize: 10, color: "#888", marginTop: 8, textAlign: "center" }}>
+          First upload may take 2-5 minutes while model downloads...
+        </p>
+      )}
     </div>
   );
 }
@@ -763,26 +877,46 @@ function ImageUploadView({ onResult, lang }: { onResult: (r: AnalysisResult) => 
   );
 }
 
-function LoadingState({ lang }: { lang: Language }) {
+// 2. Updated LoadingState function
+function LoadingState({ lang, transcript }: { lang: Language; transcript?: string }) {
   const t = translations[lang];
   return (
-    <div style={{ color: "#a78bfa", textAlign: "center", marginTop: 60, fontSize: 13 }}>
+    <div style={{ color: "#a78bfa", textAlign: "center", marginTop: 40, fontSize: 13 }}>
       <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-      {t.analyzing}
+      <div>{t.analyzing}</div>
+
+      {transcript && (
+        <div style={{
+          marginTop: 20, padding: 12,
+          background: "#1a1a2e", border: "1px solid #3a3a5e",
+          borderRadius: 8, textAlign: "left",
+        }}>
+          <div style={{
+            fontSize: 10, color: "#666", marginBottom: 6,
+            textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700,
+          }}>
+            Transcript
+          </div>
+          <div style={{ fontSize: 12, color: "#c0c0e0", lineHeight: 1.6 }}>
+            {transcript}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
+
 function ResultState({ result, onReset, lang }: { result: AnalysisResult; onReset: () => void; lang: Language }) {
   const t = translations[lang];
   const riskColor = RISK_COLORS[result.risk_level];
-  
+
   const getContradictionText = (level: "low" | "medium" | "high") => {
     if (level === "low") return t.lowContradiction;
     if (level === "medium") return t.mediumContradiction;
     return t.highContradiction;
   };
-  
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16, background: "#1a1a2e", borderRadius: 8, padding: 12 }}>
@@ -857,6 +991,7 @@ export default function App() {
   const [mode, setMode] = useState<Mode>("picker");
   const [language, setLanguage] = useState<Language>("en");
   const t = translations[language];
+  const [pendingTranscript, setPendingTranscript] = useState<string>("");
 
   useEffect(() => {
     function consume(pending: PendingAnalysis) {
@@ -910,6 +1045,7 @@ export default function App() {
     chrome.storage.session.remove(STORAGE_KEY);
     setState({ status: "idle" });
     setMode("picker");
+    setPendingTranscript("");
   }
 
   const showBack = mode !== "picker" && state.status !== "loading" && state.status !== "success";
@@ -957,7 +1093,7 @@ export default function App() {
       )}
 
       {/* Loading */}
-      {state.status === "loading" && <LoadingState lang={language} />}
+      {state.status === "loading" && <LoadingState lang={language} transcript={pendingTranscript} />}
 
       {/* Results */}
       {state.status === "success" && <ResultState result={state.result} onReset={reset} lang={language} />}
@@ -993,11 +1129,23 @@ export default function App() {
           )}
 
           {mode === "audio" && (
-            <AudioFileView onTranscribed={(text) => analyzeText(text, "audio://file")} lang={language} />
+            <AudioFileView
+              onTranscribed={(text) => {
+                setPendingTranscript(text);
+                analyzeText(text, "audio://file");
+              }}
+              lang={language}
+            />
           )}
 
           {mode === "speech" && (
-            <SpeechView onReady={(text) => analyzeText(text, "speech://microphone")} lang={language} />
+            <SpeechView
+              onReady={(text) => {
+                setPendingTranscript(text);
+                analyzeText(text, "speech://microphone");
+              }}
+              lang={language}
+            />
           )}
 
           {mode === "image" && (
