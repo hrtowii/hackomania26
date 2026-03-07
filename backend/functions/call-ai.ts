@@ -11,6 +11,13 @@ export const openai_client = new OpenAI({
 
 export const DEFAULT_MODEL = "google/gemini-3.1-flash-lite-preview";
 export const IMG_MODEL = "google/gemini-3.1-flash-lite-preview";
+
+export type CallAiWithSearchOptions = {
+  model?: string;
+  responseFormat?: Record<string, unknown>;
+  systemPrompt?: string;
+};
+
 export async function callAiOneShot(
   prompt: string,
   model: string = DEFAULT_MODEL
@@ -79,10 +86,12 @@ const EXA_SEARCH_TOOL: OpenAI.Chat.Completions.ChatCompletionTool = {
  */
 export async function callAiWithSearch(
   prompt: string,
-  model: string = DEFAULT_MODEL,
-  responseFormat?: Record<string, unknown>
+  options: CallAiWithSearchOptions = {}
 ): Promise<string> {
+  const { model = DEFAULT_MODEL, responseFormat, systemPrompt } = options;
+
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    ...(systemPrompt ? [{ role: "system", content: systemPrompt } as const] : []),
     { role: "user", content: prompt },
   ];
 

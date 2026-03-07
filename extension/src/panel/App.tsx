@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { PendingAnalysis } from "../background/index";
 import { STORAGE_KEY } from "../background/index";
+import { deriveRiskLevel, getRiskColorFromScore, injectStyle, RISK_COLORS, type RiskLevel } from "./utils";
 
 type Language = "en" | "zh" | "ms" | "ta";
-/** Matches backend risk_level values */
-type RiskLevel = "safe" | "caution" | "suspicious";
 /** Granular WhatsApp FactCheck classification */
 type WhatsAppClassification = "legitimate" | "misleading" | "scam" | "suspicious" | "unverified";
 type Mode = "picker" | "text" | "audio" | "speech" | "image";
@@ -18,7 +17,6 @@ interface CrossReference {
 interface AnalysisResult {
   analysis_id: string;
   credibility_score: number;
-  risk_level: RiskLevel;
   /** Granular classification, present on WhatsApp fact-check results */
   classification?: WhatsAppClassification;
   summary: string;
@@ -40,13 +38,6 @@ type AppState =
 
 const BACKEND_URL = "http://localhost:3000";
 const MAX_IMAGES = 5;
-
-/** Maps the backend risk_level values to display colours */
-const RISK_COLORS: Record<RiskLevel, string> = {
-  "safe": "#22c55e",
-  "caution": "#f59e0b",
-  "suspicious": "#ef4444",
-};
 
 const CLASSIFICATION_COLORS: Record<WhatsAppClassification, string> = {
   "legitimate": "#22c55e",
@@ -406,15 +397,8 @@ const btnSecondary: React.CSSProperties = {
   fontSize: 13, cursor: "pointer",
 };
 
-function injectStyle(id: string, css: string) {
-  if (document.getElementById(id)) return;
-  const el = document.createElement("style");
-  el.id = id; el.textContent = css;
-  document.head.appendChild(el);
-}
-
 function ScoreRing({ score }: { score: number }) {
-  const color = score >= 70 ? RISK_COLORS["safe"] : score >= 40 ? RISK_COLORS["caution"] : RISK_COLORS["suspicious"];
+  const color = getRiskColorFromScore(score);
   return (
     <div style={{
       width: 72, height: 72, borderRadius: "50%",
@@ -838,7 +822,8 @@ function LoadingState({ lang }: { lang: Language }) {
 
 function ResultState({ result, onReset, lang }: { result: AnalysisResult; onReset: () => void; lang: Language }) {
   const t = translations[lang];
-  const riskColor = RISK_COLORS[result.risk_level] ?? "#f59e0b";
+  const riskLevel = deriveRiskLevel(result.credibility_score);
+  const riskColor = RISK_COLORS[riskLevel] ?? "#f59e0b";
 
   const riskLabel: Record<RiskLevel, string> = {
     safe: t.riskSafe,
@@ -892,7 +877,7 @@ function ResultState({ result, onReset, lang }: { result: AnalysisResult; onRese
         <ScoreRing score={result.credibility_score} />
         <div>
           <div style={{ fontSize: 11, color: "#888", marginBottom: 4 }}>{t.credibilityScore}</div>
-          <Badge label={riskLabel[result.risk_level] ?? result.risk_level} color={riskColor} />
+          <Badge label={riskLabel[riskLevel]} color={riskColor} />
         </div>
       </div>
 

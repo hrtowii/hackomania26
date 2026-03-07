@@ -9,7 +9,6 @@ export const imageRoute = new Elysia().post(
     const stub: typeof AnalysisResponse.static = {
       analysis_id: randomUUID(),
       credibility_score: 50,
-      risk_level: "caution",
       summary: "Stub analysis for uploaded image.",
       bias_detected: [],
       cross_references: [],

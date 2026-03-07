@@ -1,21 +1,8 @@
 import { Elysia } from "elysia";
-import { AnalyzeUrlBody, AnalysisResponse, CrossReference } from "../types";
-import type { TAnalysisResponse } from "../types";
-import { t } from "elysia";
+import { AnalyzeUrlBody, AnalysisAiOutputSchema, AnalysisResponse } from "../types";
+import type { TAnalysisAiOutput, TAnalysisResponse } from "../types";
 import { randomUUID } from "crypto";
 import { callAiWithSearch } from "../../functions/call-ai";
-
-const AnalysisOutputSchema = t.Object({
-  credibility_score: t.Number({ minimum: 0, maximum: 100 }),
-  risk_level: t.Union([t.Literal("safe"), t.Literal("caution"), t.Literal("suspicious")]),
-  summary: t.String(),
-  bias_detected: t.Array(t.String()),
-  cross_references: t.Array(CrossReference),
-  key_claims: t.Array(t.String()),
-  recommendation: t.String(),
-});
-
-type TAnalysisOutput = typeof AnalysisOutputSchema.static;
 
 const SYSTEM_PROMPT =
   "You are a credibility and scam-detection assistant specialised in Singapore cybercrime patterns. " +
@@ -38,16 +25,19 @@ export const analyzeUrlRoute = new Elysia().post(
       `URL: ${body.url}\n\n` +
       `Page content:\n\n${pageMarkdown.slice(0, 12000)}`; // cap to ~12k chars
 
-    const raw = await callAiWithSearch(prompt, undefined, {
-      type: "json_schema",
-      json_schema: {
-        name: "analysis",
-        strict: true,
-        schema: AnalysisOutputSchema as unknown as Record<string, unknown>,
+    const raw = await callAiWithSearch(prompt, {
+      systemPrompt: SYSTEM_PROMPT,
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "analysis",
+          strict: true,
+          schema: AnalysisAiOutputSchema as unknown as Record<string, unknown>,
+        },
       },
     });
 
-    const output = JSON.parse(raw) as TAnalysisOutput;
+    const output = JSON.parse(raw) as TAnalysisAiOutput;
 
     return { ...output, analysis_id: randomUUID() } satisfies TAnalysisResponse;
   },
