@@ -13,6 +13,17 @@ function normalizeClassification(value: unknown): "legitimate" | "misleading" | 
   if (text.includes("legit") || text.includes("reliable") || text.includes("safe") || text.includes("informational")) return "legitimate";
   return "unverified";
 }
+import { postMessageCheck } from "../../functions/postMessageCheck";
+
+function normalizeClassification(value: unknown): "legitimate" | "misleading" | "scam" | "suspicious" | "unverified" {
+  const text = String(value ?? "").toLowerCase();
+
+  if (text.includes("scam") || text.includes("fraud") || text.includes("phish")) return "scam";
+  if (text.includes("mislead") || text.includes("false") || text.includes("fake") || text.includes("hoax")) return "misleading";
+  if (text.includes("suspic") || text.includes("dubious") || text.includes("questionable")) return "suspicious";
+  if (text.includes("legit") || text.includes("reliable") || text.includes("safe") || text.includes("informational")) return "legitimate";
+  return "unverified";
+}
 
 const SYSTEM_PROMPT =
   "You are a credibility and scam-detection assistant specialised in Singapore cybercrime patterns. " +
@@ -51,6 +62,7 @@ export const analyzeUrlRoute = new Elysia().post(
           name: "analysis",
           strict: true,
           schema: JSON.parse(JSON.stringify(AnalysisAiOutputSchema)),
+          schema: JSON.parse(JSON.stringify(AnalysisAiOutputSchema)),
         },
       },
     });
@@ -70,6 +82,8 @@ export const analyzeUrlRoute = new Elysia().post(
       throw new Error(`JSON parse failed: ${e}`);
     }
 
+    // Build cross_references deterministically from Exa results.
+    // AI-assigned contradiction_level values are mapped back by URL (best-effort).
     const aiByUrl = new Map<string, "low" | "medium" | "high">(
       (output.cross_references ?? [])
         .filter((ref) => ref.url?.startsWith("http"))
@@ -80,7 +94,7 @@ export const analyzeUrlRoute = new Elysia().post(
       let source = "External source";
       try {
         source = new URL(item.url).hostname.replace(/^www\./, "");
-      } catch { }
+      } catch {}
       return {
         title: item.title?.trim() || source,
         source,

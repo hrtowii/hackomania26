@@ -97,12 +97,19 @@ export const analyzeTextRoute = new Elysia().post(
         .filter((ref) => ref.url?.startsWith("http"))
         .map((ref) => [ref.url, ref.contradiction_level])
     );
+    // Build cross_references deterministically from Exa results.
+    // AI-assigned contradiction_level values are mapped back by URL (best-effort).
+    const aiByUrl = new Map<string, "low" | "medium" | "high">(
+      (output.cross_references ?? [])
+        .filter((ref) => ref.url?.startsWith("http"))
+        .map((ref) => [ref.url, ref.contradiction_level])
+    );
 
     const cross_references = searchResults.map((item) => {
       let source = "External source";
       try {
         source = new URL(item.url).hostname.replace(/^www\./, "");
-      } catch { }
+      } catch {}
       return {
         title: item.title?.trim() || source,
         source,
