@@ -1,23 +1,9 @@
 import { Elysia } from "elysia";
-import { AnalyzeTextBody, AnalysisResponse, CrossReference, WhatsAppClassification } from "../types";
-import type { TAnalysisResponse } from "../types";
-import { t } from "elysia";
+import { AnalyzeTextBody, AnalysisAiOutputSchema, AnalysisResponse } from "../types";
+import type { TAnalysisAiOutput, TAnalysisResponse } from "../types";
 import { randomUUID } from "crypto";
 import { callAiWithSearch } from "../../functions/call-ai";
 
-const AnalysisOutputSchema = t.Object({
-  credibility_score: t.Number({ minimum: 0, maximum: 100 }),
-  risk_level: t.Union([t.Literal("safe"), t.Literal("caution"), t.Literal("suspicious")]),
-  classification: WhatsAppClassification,
-  summary: t.String(),
-  bias_detected: t.Array(t.String()),
-  cross_references: t.Array(CrossReference),
-  key_claims: t.Array(t.String()),
-  recommendation: t.String(),
-});
-
-type TAnalysisOutput = typeof AnalysisOutputSchema.static;
-// Static language name map — avoids sending language codes to the model
 const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
   zh: "Simplified Chinese (中文)",
@@ -29,7 +15,6 @@ const SYSTEM_PROMPT =
   "Identify the key claims in the text, use exa_search to find sources that confirm or contradict them, " +
   "then return your structured analysis.\n\n" +
   "Use ONLY these enum values exactly as written:\n" +
-  "  • risk_level: 'safe' | 'caution' | 'suspicious'\n" +
   "  • cross_references[].contradiction_level: 'low' | 'medium' | 'high'\n\n" +
   "For the 'classification' field, choose exactly one of:\n" +
   "  • 'legitimate'  – content is verified accurate\n" +
@@ -52,12 +37,8 @@ export const analyzeTextRoute = new Elysia().post(
     });
 
     const prompt =
-      "You are a fact-checking assistant, in Singapore information spreads rapidly through messaging apps, forums, social media platforms, and community groups. Identify the key claims in the text, " +
-      "use exa_search to find sources that confirm or contradict them, " +
-      "then return your structured analysis.\n\n" +
       `IMPORTANT: Write ALL text fields (summary, recommendation, key_claims, bias_detected) ` +
       `in ${LangChosen}. Do not use English unless ${LangChosen} is English.\n\n` +
-      `risk_level must be exactly one of: "likely accurate", "unverified", "potentially misleading".\n\n` +
       `cross_references contradiction_level must be exactly one of: "low", "medium", "high". Never use "none".\n\n` +
       `${body.source_url ? `Source URL: ${body.source_url}\n` : ""}` +
       `${body.preferred_language ? `Respond in language: ${body.preferred_language}\n` : ""}` +
@@ -66,12 +47,15 @@ export const analyzeTextRoute = new Elysia().post(
     console.log("🔍 [2/4] Calling AI with web search...");
     const start = Date.now();
 
-    const raw = await callAiWithSearch(prompt, undefined, {
-      type: "json_schema",
-      json_schema: {
-        name: "analysis",
-        strict: true,
-        schema: AnalysisOutputSchema as unknown as Record<string, unknown>,
+    const raw = await callAiWithSearch(prompt, {
+      systemPrompt: SYSTEM_PROMPT,
+      responseFormat: {
+        type: "json_schema",
+        json_schema: {
+          name: "analysis",
+          strict: true,
+          schema: AnalysisAiOutputSchema as unknown as Record<string, unknown>,
+        },
       },
     });
 
@@ -83,15 +67,14 @@ export const analyzeTextRoute = new Elysia().post(
       throw new Error("AI returned empty response");
     }
 
-    let output: TAnalysisOutput;
+    let output: TAnalysisAiOutput;
     try {
-      output = JSON.parse(raw) as TAnalysisOutput;
+      output = JSON.parse(raw) as TAnalysisAiOutput;
     } catch (e) {
       console.error("❌ JSON parse failed. Full raw:", raw);
       throw new Error(`JSON parse failed: ${e}`);
     }
 
-    // Normalize contradiction_level — AI sometimes returns "none" or other values
     const CONTRADICTION_MAP: Record<string, "low" | "medium" | "high"> = {
       "none": "low",
       "minimal": "low",
@@ -99,20 +82,19 @@ export const analyzeTextRoute = new Elysia().post(
       "severe": "high",
       "strong": "high",
     };
-    output.cross_references = output.cross_references.map((ref) => ({
+
+    const normalizedCrossReferences = output.cross_references.map((ref) => ({
       ...ref,
       contradiction_level: (CONTRADICTION_MAP[ref.contradiction_level] ?? ref.contradiction_level) as "low" | "medium" | "high",
     }));
 
-    // Derive risk_level from score — don't trust the AI's own assessment
-    output.risk_level =
-      output.credibility_score >= 70 ? "likely accurate" :
-      output.credibility_score >= 40 ? "unverified" :
-      "potentially misleading";
+    console.log("🎉 [4/4] Done. score:", output.credibility_score);
 
-    console.log("🎉 [4/4] Done. risk_level:", output.risk_level, "| score:", output.credibility_score);
-
-    return { ...output, analysis_id: randomUUID() } satisfies TAnalysisResponse;
+    return {
+      ...output,
+      cross_references: normalizedCrossReferences,
+      analysis_id: randomUUID(),
+    } satisfies TAnalysisResponse;
   },
   {
     body: AnalyzeTextBody,
