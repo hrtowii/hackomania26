@@ -26,30 +26,14 @@ export function ImageUploadView({ onResult, lang }: { onResult: (r: AnalysisResu
     if (!images.length) return;
     setLoading(true); setError("");
     try {
-      const imagesb64: string[] = [];
-
-      for (const image of images) {
-        const buffer = await image.file.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-
-        let binary = "";
-        for (let i = 0; i < bytes.byteLength; i++) {
-          binary += String.fromCharCode(bytes[i]);
-        }
-
-        const base64 = btoa(binary);
-        imagesb64.push(base64);
+      let imagesb64: any = [];
+      for (let image of images) {
+        image.file.arrayBuffer().then((res) => {
+        })
       }
-
-      const res = await fetch(`${BACKEND_URL}/image`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          images: imagesb64,
-        }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      onResult(await res.json());
+      // const res = await fetch(`${BACKEND_URL}/image`, { method: "POST", body: [] });
+      // if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // onResult(await res.json());
     } catch {
       setError(t.imageFailed);
     } finally {
