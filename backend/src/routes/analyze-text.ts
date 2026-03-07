@@ -1,7 +1,6 @@
 import { Elysia } from "elysia";
 import { AnalyzeTextBody, AnalysisResponse } from "../types";
 import { randomUUID } from "crypto";
-
 export const analyzeTextRoute = new Elysia().post(
   "/analyze/text",
   async ({ body }) => {
