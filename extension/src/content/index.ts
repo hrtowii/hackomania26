@@ -23,6 +23,11 @@ export interface AnalyzeUrlMessage {
   targetUrl?: string;
 }
 
+export interface AnalyzeUrlMessage {
+  type: "ANALYZE_URL";
+  targetUrl?: string;
+}
+
 // ─── Button helpers ───────────────────────────────────────────────────────────
 
 function removeButton(): void {

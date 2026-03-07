@@ -53,6 +53,7 @@ export const analyzeTextRoute = new Elysia().post(
       `${body.source_url ? `Source URL: ${body.source_url}\n` : ""}` +
       `${body.preferred_language ? `Respond in language: ${body.preferred_language}\n` : ""}` +
       `Text:\n\n${body.text}`;
+
     console.log("🔍 [2/5] Comparing with scams in the database...");
     function normalizeText(input: string): string {
       return input.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
