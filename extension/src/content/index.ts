@@ -314,6 +314,15 @@ async function handleDocumentClick(e: MouseEvent): Promise<void> {
     if (!isMessageLink) return;
   }
 
+  // On Telegram Web, only intercept <a> link clicks inside message bubbles.
+  // All other controls are Telegram's own UI — leave them alone.
+  if (isOnTelegram()) {
+    const isMessageLink =
+      el.tagName === "A" &&
+      Boolean(el.closest("[data-message-id], [data-mid]"));
+    if (!isMessageLink) return;
+  }
+
   if (approvedElements.has(el)) {
     approvedElements.delete(el);
     return;
@@ -353,7 +362,16 @@ async function handleDocumentClick(e: MouseEvent): Promise<void> {
     return;
   }
 
-  if (!result || result.safetyScore > 100) {
+  // No result (backend unreachable / error) — pass through silently
+  if (!result) {
+    scamCheckInProgress = true;
+    el.click();
+    scamCheckInProgress = false;
+    return;
+  }
+
+  // Score ≥ 100 is considered safe — skip the popup and proceed
+  if (result.safetyScore >= 100) {
     scamCheckInProgress = true;
     el.click();
     scamCheckInProgress = false;
@@ -375,8 +393,8 @@ async function handleDocumentClick(e: MouseEvent): Promise<void> {
 async function handleDocumentSubmit(e: SubmitEvent): Promise<void> {
   if (scamCheckInProgress) return;
   if (isTruthLensUiTarget(e.target)) return;
-  // WhatsApp's form submissions are internal app actions — never intercept them
-  if (isOnWhatsApp()) return;
+  // WhatsApp / Telegram form submissions are internal app actions — never intercept them
+  if (isOnWhatsApp() || isOnTelegram()) return;
 
   const form = e.target as HTMLFormElement;
   e.preventDefault();
@@ -388,7 +406,7 @@ async function handleDocumentSubmit(e: SubmitEvent): Promise<void> {
   const result = await fetchScamAnalysis(targetUrl);
   form.style.opacity = "";
 
-  if (!result || result.safetyScore <= 100) {
+  if (!result || result.safetyScore >= 70) {
     scamCheckInProgress = true;
     form.submit();
     scamCheckInProgress = false;
@@ -411,6 +429,172 @@ const FACTCHECK_BTN_CLASS = "tl-factcheck-btn";
 
 function isOnWhatsApp(): boolean {
   return window.location.hostname === WA_HOSTNAME;
+}
+
+// ─── Telegram FactCheck Feature ──────────────────────────────────────────────
+
+const TG_HOSTNAME = "web.telegram.org";
+const TG_FACTCHECK_BTN_CLASS = "tl-tg-factcheck-btn";
+
+/** Selector that matches a message bubble in both Telegram Web A and K. */
+const TG_MSG_SELECTOR = "[data-message-id], [data-mid]";
+
+function isOnTelegram(): boolean {
+  return window.location.hostname === TG_HOSTNAME;
+}
+
+function getTelegramMessageText(msgEl: Element): string {
+  // Web A — rich text lives in .text-content; Web K — plain text in a <p>
+  const textContent = msgEl.querySelector(".text-content");
+  const bodyText = textContent?.textContent?.trim()
+    ?? msgEl.querySelector("p")?.textContent?.trim()
+    ?? "";
+
+  // Detect media types — sticker, photo, video, document, gif, audio, voice
+  const mediaType =
+    msgEl.querySelector(".media-sticker, .sticker-container") ? "[Sticker]" :
+    msgEl.querySelector(".media-photo, .attachment-photo")    ? "[Image]"   :
+    msgEl.querySelector(".media-gif")                         ? "[GIF]"     :
+    msgEl.querySelector(".media-video, .attachment-video")    ? "[Video]"   :
+    msgEl.querySelector(".media-document, .document-container")? "[File]"   :
+    msgEl.querySelector(".media-voice")                       ? "[Voice]"   :
+    msgEl.querySelector(".media-audio")                       ? "[Audio]"   :
+    // Web K: generic photo/video spans
+    msgEl.querySelector("img.media-photo")                    ? "[Image]"   :
+    // fallback: any <img> that isn't an avatar/emoji
+    (() => {
+      const img = msgEl.querySelector("img:not(.avatar):not(.emoji):not([width='20'])");
+      return img ? "[Image]" : null;
+    })();
+
+  if (mediaType) {
+    // Also grab the file name from a document bubble if present
+    const fileName = msgEl.querySelector(".document-name, .file-title")?.textContent?.trim() ?? "";
+    const parts = [mediaType, fileName, bodyText].filter(Boolean);
+    return parts.join(" ").trim();
+  }
+
+  return bodyText;
+}
+
+/**
+ * Injects a small 🔍 FactCheck hover-button into a Telegram message bubble.
+ * The button is appended once per bubble and hidden/shown via CSS on hover.
+ */
+function injectTelegramFactCheckBtn(msgEl: Element): void {
+  if (msgEl.querySelector(`.${TG_FACTCHECK_BTN_CLASS}`)) return; // already injected
+
+  const text = getTelegramMessageText(msgEl);
+  if (!text) return; // nothing detectable — skip
+
+  // Find the innermost bubble element so the button anchors to the visible
+  // chat bubble, not the full-width message row.
+  // Telegram Web A: .bubble > .bubble-content > .message-content
+  // Telegram Web K: .message > .message-content-wrapper
+  // For stickers/photos the relevant container is .media-container / .attachment
+  const bubbleEl = (
+    msgEl.querySelector(".media-sticker, .sticker-container") ??
+    msgEl.querySelector(".media-photo, .media-container") ??
+    msgEl.querySelector(".media-gif, .media-video") ??
+    msgEl.querySelector(".bubble-content") ??
+    msgEl.querySelector(".bubble") ??
+    msgEl.querySelector(".message-content-wrapper") ??
+    msgEl.querySelector(".message-content") ??
+    // fallback: first child element that has non-zero rendered width
+    Array.from(msgEl.children).find(
+      (c) => (c as HTMLElement).offsetWidth > 0
+    ) ??
+    msgEl
+  ) as HTMLElement;
+
+  // Ensure we can absolutely position inside it without clipping
+  const cs = getComputedStyle(bubbleEl);
+  if (cs.position === "static") bubbleEl.style.position = "relative";
+  if (cs.overflow === "hidden") bubbleEl.style.overflow = "visible";
+
+  const btn = document.createElement("button");
+  btn.className = TG_FACTCHECK_BTN_CLASS;
+  markTruthLensUi(btn);
+  btn.title = "FactCheck this message";
+  btn.innerHTML = `<span style="font-size:12px;line-height:1;pointer-events:none;">🔍</span>`;
+
+  Object.assign(btn.style, {
+    position: "absolute",
+    // Sit just outside the right edge of the bubble, vertically centred
+    right: "-32px",
+    top: "50%",
+    transform: "translateY(-50%)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "24px",
+    height: "24px",
+    borderRadius: "50%",
+    border: "1px solid rgba(255,255,255,0.22)",
+    background: "rgba(26,26,46,0.88)",
+    cursor: "pointer",
+    padding: "0",
+    zIndex: "9999",
+    opacity: "0",
+    transition: "opacity 0.15s ease",
+  } as Partial<CSSStyleDeclaration>);
+
+  // Show when hovering anywhere over the message row; hide when leaving it
+  const showBtn = () => { btn.style.opacity = "1"; };
+  const hideBtn = () => { btn.style.opacity = "0"; };
+
+  msgEl.addEventListener("mouseenter", showBtn);
+  msgEl.addEventListener("mouseleave", (e: Event) => {
+    if (!btn.contains((e as MouseEvent).relatedTarget as Node | null)) hideBtn();
+  });
+  btn.addEventListener("mouseleave", (e: Event) => {
+    if (!msgEl.contains((e as MouseEvent).relatedTarget as Node | null)) hideBtn();
+  });
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    chrome.runtime.sendMessage({
+      type: "ANALYZE_SELECTION",
+      text,
+      sourceUrl: window.location.href,
+    } satisfies AnalyzeSelectionMessage);
+  });
+
+  bubbleEl.appendChild(btn);
+}
+
+let tgObserver: MutationObserver | null = null;
+
+function setupTelegramObserver(): void {
+  if (tgObserver) return;
+
+  if (!document.getElementById("tl-tg-style")) {
+    const s = document.createElement("style");
+    s.id = "tl-tg-style";
+    s.textContent = `.${TG_FACTCHECK_BTN_CLASS}:active { transform: scale(0.88); }`;
+    document.head.appendChild(s);
+  }
+
+  const scan = () =>
+    document.querySelectorAll(TG_MSG_SELECTOR).forEach(injectTelegramFactCheckBtn);
+
+  tgObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (!(node instanceof Element)) continue;
+        if (node.matches(TG_MSG_SELECTOR)) injectTelegramFactCheckBtn(node);
+        node.querySelectorAll(TG_MSG_SELECTOR).forEach(injectTelegramFactCheckBtn);
+      }
+    }
+  });
+
+  tgObserver.observe(document.body, { childList: true, subtree: true });
+  // Initial scan after React renders the chat
+  setTimeout(scan, 1000);
+  // Re-scan when navigating between chats (hash / history changes)
+  window.addEventListener("hashchange", () => setTimeout(scan, 600), { passive: true });
+  window.addEventListener("popstate", () => setTimeout(scan, 600), { passive: true });
 }
 
 function getWhatsAppMessageText(msgEl: Element): string {
@@ -566,4 +750,5 @@ if (!(globalThis as Record<string, unknown>)[INIT_KEY]) {
   (globalThis as Record<string, unknown>)[INIT_KEY] = true;
   setupGlobalDocumentHandlers();
   if (isOnWhatsApp()) setupWhatsAppObserver();
+  if (isOnTelegram()) setupTelegramObserver();
 }
