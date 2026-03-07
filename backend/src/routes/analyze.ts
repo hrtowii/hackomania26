@@ -6,6 +6,7 @@ export const analyzeRoute = new Elysia().post(
   "/analyze",
   async ({ body }) => {
     // TODO: implement actual URL fetch + AI analysis
+    console.log("analyse called")
     const stub: typeof AnalysisResponse.static = {
       analysis_id: randomUUID(),
       credibility_score: 50,
