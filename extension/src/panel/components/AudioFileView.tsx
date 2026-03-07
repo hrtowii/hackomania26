@@ -16,7 +16,7 @@ export function AudioFileView({ onTranscribed, lang }: { onTranscribed: (text: s
     try {
       const form = new FormData();
       form.append("audio", file);
-      const res = await fetch(`${BACKEND_URL}/transcribe`, { method: "POST", body: form });
+      const res = await fetch(`${BACKEND_URL}/transcribe`, { method: "POST", headers: { "X-Language": lang }, body: form });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const { text } = await res.json();
       onTranscribed(text);
@@ -76,6 +76,12 @@ export function AudioFileView({ onTranscribed, lang }: { onTranscribed: (text: s
       >
         {loading ? t.transcribing : t.transcribeAndAnalyze}
       </button>
+
+      {loading && (
+        <p style={{ fontSize: 10, color: "#888", marginTop: 8, textAlign: "center" }}>
+          First upload may take 2-5 minutes while model downloads...
+        </p>
+      )}
     </div>
   );
 }
