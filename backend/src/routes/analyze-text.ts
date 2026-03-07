@@ -22,6 +22,9 @@ const SYSTEM_PROMPT =
   "You are a fact-checking assistant specialised in Singapore misinformation, scam messages, and digital fraud. " +
   "Identify the key claims in the text, use exa_search to find sources that confirm or contradict them, " +
   "then return your structured analysis.\n\n" +
+  "Use ONLY these enum values exactly as written:\n" +
+  "  • risk_level: 'safe' | 'caution' | 'suspicious'\n" +
+  "  • cross_references[].contradiction_level: 'low' | 'medium' | 'high'\n\n" +
   "For the 'classification' field, choose exactly one of:\n" +
   "  • 'legitimate'  – content is verified accurate\n" +
   "  • 'misleading'  – partially false, manipulative framing, or missing key context\n" +

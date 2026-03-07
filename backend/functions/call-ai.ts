@@ -96,8 +96,15 @@ export async function callAiWithSearch(
   const firstMsg = first.choices[0].message;
 
   if (first.choices[0].finish_reason !== "tool_calls" || !firstMsg.tool_calls?.length) {
-    console.log("no tool call")
-    return firstMsg.content ?? "";
+    if (!responseFormat) return firstMsg.content ?? "";
+
+    const structured = await openai_client.chat.completions.create({
+      model,
+      messages,
+      response_format: responseFormat as unknown as OpenAI.ResponseFormatJSONSchema,
+    });
+
+    return structured.choices[0].message.content ?? "";
   }
 
   const toolCall = firstMsg.tool_calls[0];
