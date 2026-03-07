@@ -1,29 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
-import { embedText } from "./embeddings";
-
-export type CrossReference = {
-  title: string;
-  url?: string;
-  source?: string;
-  excerpt?: string;
-  relation?: string;
-  confidence?: number;
-};
-
-export type MessageCheckInput = {
-  content_text: string;
-  credibility_score: number;
-  summary: string;
-  recommendation: string;
-
-  bias_detected?: string[];
-  cross_references?: CrossReference[];
-  key_claims?: string[];
-
-  image_present?: boolean;
-  image_hash?: string | null;
-};
+import { MessageCheckCrossReference, MessageCheckInput } from "../src/types";
 const supabaseUrl = Bun.env.SUPABASE_URL;
 const supabaseKey = Bun.env.SUPABASE_ANON_KEY;
 

@@ -8,7 +8,8 @@
  * 4. Open the TruthLens side panel on the current tab
  */
 
-import type { AnalyzeSelectionMessage } from "../content/index";
+import { BACKEND_URL } from "../panel/constants";
+import type { AnalyzeSelectionMessage, AnalyzeUrlMessage } from "../content/index";
 
 // ─── Storage key ─────────────────────────────────────────────────────────────
 
@@ -18,6 +19,35 @@ export interface PendingAnalysis {
   text: string;
   sourceUrl: string;
   timestamp: number;
+}
+
+interface ScamResult {
+  safetyScore: number;
+  summary: string;
+}
+
+async function fetchScamAnalysis(targetUrl: string | undefined): Promise<ScamResult | null> {
+  const url = targetUrl ?? "";
+  try {
+    const res = await fetch(`${BACKEND_URL}/analyze/url`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json() as { credibility_score: number; summary: string };
+
+    if (typeof data.credibility_score !== "number") return null;
+    if (typeof data.summary !== "string") return null;
+
+    return {
+      safetyScore: data.credibility_score,
+      summary: data.summary,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function enqueuePendingAnalysis(tabId: number, text: string, sourceUrl: string): void {
@@ -63,12 +93,25 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // ─── Message handler (floating button in content script) ──────────────────────
 
 chrome.runtime.onMessage.addListener(
-  (message: AnalyzeSelectionMessage, sender, _sendResponse) => {
-    if (message.type !== "ANALYZE_SELECTION") return;
+  (
+    message: AnalyzeSelectionMessage | AnalyzeUrlMessage,
+    sender,
+    sendResponse,
+  ) => {
+    if (message.type === "ANALYZE_SELECTION") {
+      const tabId = sender.tab?.id;
+      if (tabId == null) return;
 
-    const tabId = sender.tab?.id;
-    if (tabId == null) return;
+      enqueuePendingAnalysis(tabId, message.text, message.sourceUrl);
+      return;
+    }
 
-    enqueuePendingAnalysis(tabId, message.text, message.sourceUrl);
+    if (message.type === "ANALYZE_URL") {
+      void (async () => {
+        const result = await fetchScamAnalysis(message.targetUrl);
+        sendResponse(result);
+      })();
+      return true;
+    }
   }
 );

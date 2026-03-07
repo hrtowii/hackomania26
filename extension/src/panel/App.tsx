@@ -20,6 +20,7 @@ import { deriveRiskLevel, getRiskColorFromScore, injectStyle, RISK_COLORS, type 
 type Mode = "picker" | "text" | "audio" | "speech" | "image";
 
 interface CrossReference {
+  title: string;
   source: string;
   contradiction_level: "low" | "medium" | "high";
   url: string;
@@ -560,7 +561,11 @@ function ResultState({ result, onReset, lang }: { result: AnalysisResult; onRese
               borderLeft: `3px solid ${ref.contradiction_level === "high" ? "#ef4444" : ref.contradiction_level === "medium" ? "#f59e0b" : "#22c55e"}`,
               paddingLeft: 8,
             }}>
-              <a href={ref.url} target="_blank" rel="noreferrer" style={{ color: "#7c7cff", textDecoration: "none" }}>{ref.source}</a>
+              {ref.url?.startsWith("http") ? (
+                <a href={ref.url} target="_blank" rel="noreferrer" style={{ color: "#7c7cff", textDecoration: "none" }}>{ref.source}</a>
+              ) : (
+                <span style={{ color: "#7c7cff" }}>{ref.source}</span>
+              )}
               <span style={{ color: "#666", marginLeft: 6 }}>({getContradictionText(ref.contradiction_level)})</span>
             </div>
           ))}

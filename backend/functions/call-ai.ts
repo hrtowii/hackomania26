@@ -1,6 +1,7 @@
 import { OpenAI } from "openai";
 import type { ChatMessage } from "../src/types";
 import { exaSearch } from "./search";
+import type { ExaResult } from "./search";
 
 export { type ChatMessage };
 
@@ -16,6 +17,11 @@ export type CallAiWithSearchOptions = {
   model?: string;
   responseFormat?: Record<string, unknown>;
   systemPrompt?: string;
+};
+
+export type CallAiWithSearchResult = {
+  text: string;
+  searchResults: ExaResult[];
 };
 
 export async function callAiOneShot(
@@ -80,14 +86,19 @@ const EXA_SEARCH_TOOL: OpenAI.Chat.Completions.ChatCompletionTool = {
   },
 };
 
+const RESPONSE_HEALING_PLUGIN = [{ id: "response-healing" }];
+
 /**
  * Chat call with Exa web search tool. Optionally pass a JSON Schema object
  * as `responseFormat` to get structured output on the final answer.
+ *
+ * Returns `{ text, searchResults }` where `searchResults` is the list of Exa
+ * results from the tool call (empty array if no tool call happened).
  */
 export async function callAiWithSearch(
   prompt: string,
   options: CallAiWithSearchOptions = {}
-): Promise<string> {
+): Promise<CallAiWithSearchResult> {
   const { model = DEFAULT_MODEL, responseFormat, systemPrompt } = options;
 
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
@@ -95,46 +106,60 @@ export async function callAiWithSearch(
     { role: "user", content: prompt },
   ];
 
-  const first = await openai_client.chat.completions.create({
+  const firstCallParams: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming = {
     model,
     messages,
     tools: [EXA_SEARCH_TOOL],
     tool_choice: "auto",
-  });
+    stream: false,
+    ...(responseFormat
+      ? {
+          response_format: responseFormat as unknown as OpenAI.ResponseFormatJSONSchema,
+          plugins: RESPONSE_HEALING_PLUGIN,
+        }
+      : {}),
+  };
 
+  const first = await openai_client.chat.completions.create(firstCallParams);
   const firstMsg = first.choices[0].message;
 
+  // Model answered directly without calling the tool
   if (first.choices[0].finish_reason !== "tool_calls" || !firstMsg.tool_calls?.length) {
-    if (!responseFormat) return firstMsg.content ?? "";
-
-    const structured = await openai_client.chat.completions.create({
-      model,
-      messages,
-      response_format: responseFormat as unknown as OpenAI.ResponseFormatJSONSchema,
-    });
-
-    return structured.choices[0].message.content ?? "";
+    return { text: firstMsg.content ?? "", searchResults: [] };
   }
 
   const toolCall = firstMsg.tool_calls[0];
-  if (toolCall.type !== "function") return firstMsg.content ?? "";
+  if (toolCall.type !== "function") {
+    return { text: firstMsg.content ?? "", searchResults: [] };
+  }
 
   const { query, num_results } = JSON.parse(toolCall.function.arguments) as {
     query: string;
     num_results?: number;
   };
 
-  const searchResults = await exaSearch(query, num_results ?? 1);
+  const searchResults = await exaSearch(query, num_results ?? 5);
 
-  const second = await openai_client.chat.completions.create({
+  const secondCallParams: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming = {
     model,
+    stream: false,
     messages: [
       ...messages,
       firstMsg,
       { role: "tool", tool_call_id: toolCall.id, content: JSON.stringify(searchResults) },
     ],
-    ...(responseFormat ? { response_format: responseFormat as unknown as OpenAI.ResponseFormatJSONSchema } : {}),
-  });
+    ...(responseFormat
+      ? {
+          response_format: responseFormat as unknown as OpenAI.ResponseFormatJSONSchema,
+          plugins: RESPONSE_HEALING_PLUGIN,
+        }
+      : {}),
+  };
 
-  return second.choices[0].message.content ?? "";
+  const second = await openai_client.chat.completions.create(secondCallParams);
+
+  return {
+    text: second.choices[0].message.content ?? "",
+    searchResults,
+  };
 }

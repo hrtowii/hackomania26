@@ -220,3 +220,28 @@ export type AssistantMessage = {
 };
 
 export type ChatMessage = SystemMessage | UserMessage | AssistantMessage;
+
+// postmessageCheck
+export type MessageCheckCrossReference = {
+  title: string;
+  url?: string;
+  source?: string;
+  excerpt?: string;
+  relation?: string;
+  confidence?: number;
+};
+
+export type MessageCheckInput = {
+  content_text: string;
+  credibility_score: number;
+  summary: string;
+  recommendation: string;
+
+  bias_detected?: string[];
+  cross_references?: MessageCheckCrossReference[];
+  key_claims?: string[];
+
+  image_present?: boolean;
+  image_hash?: string | null;
+};
+

@@ -1,7 +1,6 @@
 import { Elysia } from "elysia";
 import { AnalyzeTextBody, AnalysisAiOutputSchema, AnalysisResponse } from "../types";
 import type { TAnalysisAiOutput, TAnalysisResponse } from "../types";
-import { randomUUID } from "crypto";
 import { callAiWithSearch } from "../../functions/call-ai";
 import { embedText } from "../../functions/embeddings";
 import { postMessageCheck } from "../../functions/postMessageCheck";
@@ -18,6 +17,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   ms: "Malay (Bahasa Melayu)",
   ta: "Tamil (தமிழ்)",
 };
+
 const SYSTEM_PROMPT =
   "You are a fact-checking assistant specialised in Singapore misinformation, scam messages, and digital fraud. " +
   "Identify the key claims in the text, use exa_search to find sources that confirm or contradict them, " +
@@ -47,7 +47,8 @@ export const analyzeTextRoute = new Elysia().post(
     const prompt =
       `IMPORTANT: Write ALL text fields (summary, recommendation, key_claims, bias_detected) ` +
       `in ${LangChosen}. Do not use English unless ${LangChosen} is English.\n\n` +
-      `cross_references contradiction_level must be exactly one of: "low", "medium", "high". Never use "none".\n\n` +
+      `cross_references[].contradiction_level must be exactly one of: "low", "medium", "high". Never use "none".\n` +
+      `For each cross_references entry, set url to the exact URL returned by exa_search.\n\n` +
       `${body.source_url ? `Source URL: ${body.source_url}\n` : ""}` +
       `${body.preferred_language ? `Respond in language: ${body.preferred_language}\n` : ""}` +
       `Text:\n\n${body.text}`;
@@ -107,7 +108,6 @@ export const analyzeTextRoute = new Elysia().post(
     console.log("🔍 [3/5] Calling AI with web search...");
     const start = Date.now();
 
-
     const raw = await callAiWithSearch(prompt, {
       systemPrompt: SYSTEM_PROMPT,
       responseFormat: {
@@ -115,7 +115,7 @@ export const analyzeTextRoute = new Elysia().post(
         json_schema: {
           name: "analysis",
           strict: true,
-          schema: AnalysisAiOutputSchema as unknown as Record<string, unknown>,
+          schema: JSON.parse(JSON.stringify(AnalysisAiOutputSchema)),
         },
       },
     });
@@ -123,6 +123,7 @@ export const analyzeTextRoute = new Elysia().post(
     console.log(`✅ [4/5] AI responded in ${((Date.now() - start) / 1000).toFixed(1)}s`);
     console.log("📄 Raw length:", raw?.length ?? 0);
     console.log("📄 Raw preview:", raw?.slice(0, 200));
+    console.log("🔗 Exa results:", searchResults.length);
 
     if (!raw || raw.trim() === "") {
       throw new Error("AI returned empty response");
@@ -136,22 +137,29 @@ export const analyzeTextRoute = new Elysia().post(
       throw new Error(`JSON parse failed: ${e}`);
     }
 
-    const CONTRADICTION_MAP: Record<string, "low" | "medium" | "high"> = {
-      "none": "low",
-      "minimal": "low",
-      "moderate": "medium",
-      "severe": "high",
-      "strong": "high",
-    };
+    // Build cross_references deterministically from Exa results.
+    // AI-assigned contradiction_level values are mapped back by URL (best-effort).
+    const aiByUrl = new Map<string, "low" | "medium" | "high">(
+      (output.cross_references ?? [])
+        .filter((ref) => ref.url?.startsWith("http"))
+        .map((ref) => [ref.url, ref.contradiction_level])
+    );
 
-    const normalizedCrossReferences = output.cross_references.map((ref) => ({
-      ...ref,
-      contradiction_level: (CONTRADICTION_MAP[ref.contradiction_level] ?? ref.contradiction_level) as "low" | "medium" | "high",
-    }));
+    const cross_references = searchResults.map((item) => {
+      let source = "External source";
+      try {
+        source = new URL(item.url).hostname.replace(/^www\./, "");
+      } catch {}
+      return {
+        title: item.title?.trim() || source,
+        source,
+        url: item.url,
+        contradiction_level: aiByUrl.get(item.url) ?? "medium" as const,
+      };
+    });
 
     console.log("🎉 [5/5] Done. score:", output.credibility_score);
     let db_id: string | undefined;
-
     try {
       const inserted = await postMessageCheck({
         content_text: body.text,
@@ -159,20 +167,20 @@ export const analyzeTextRoute = new Elysia().post(
         summary: output.summary,
         recommendation: output.recommendation,
         bias_detected: output.bias_detected,
-        cross_references: output.cross_references,
+        cross_references,
         key_claims: output.key_claims,
         image_present: false,
         image_hash: null,
       });
-
       db_id = inserted?.id;
     } catch (err) {
       console.error("Failed to insert message_check into DB:", err);
     }
+
     return {
       ...output,
-      cross_references: normalizedCrossReferences,
-      analysis_id: randomUUID(),
+      cross_references,
+      analysis_id: db_id ?? crypto.randomUUID(),
     } satisfies TAnalysisResponse;
   },
   {
