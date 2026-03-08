@@ -56,65 +56,80 @@ export const analyzeTextRoute = new Elysia().post(
       `${body.preferred_language ? `Respond in language: ${body.preferred_language}\n` : ""}` +
       `Text:\n\n${body.text}`;
     console.log("🔍 [2/5] Comparing with scams in the database...");
-    function normalizeText(input: string): string {
-      return input.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
-    }
-    const embeddings = await embedText(normalizeText(body.text));
-    // ADD embedding search here and return the 5 closest matches (debug)
-    console.log("🧠 embedding length:", embeddings.length);
-    
+    const normalizeText = (input: string) =>
+    input.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
+
+    const embedding = await embedText(normalizeText(body.text));
+    console.log("🧠 embedding length:", embedding.length);
+
+    let dbContext = "No similar prior scam/misinformation records found in the internal database.";
+
     try {
       const { data: matches, error } = await supabase.rpc("match_message_checks", {
-        query_embedding: embeddings,
+        query_embedding: embedding,
         match_count: 5,
-        min_similarity: 0.90, // tune later (0.82–0.90)
+        min_similarity: 0.9,
       });
+
       if (error) {
         console.error("Embedding RPC error:", error.message);
       } else {
         const results = (matches ?? []) as Array<{
           message_check_id: string;
           similarity: number;
-          credibility_score: number;
-          summary: string;
-          recommendation: string;
+          credibility_score: number | null;
+          summary: string | null;
+          recommendation: string | null;
           content_text: string;
         }>;
 
-        // Flag “known scam/misinfo” candidates: high similarity + low credibility
         const suspicious = results.filter(
-          (m) => m.similarity >= 0.90 && (m.credibility_score ?? 100) <= 90
+          (m) => m.similarity >= 0.9 && (m.credibility_score ?? 100) <= 90
         );
 
-        if (suspicious.length > 0) {
-          const best = suspicious[0];
+        const relevant = suspicious.length > 0 ? suspicious : results;
+
+        if (relevant.length > 0) {
+          const best = relevant[0];
 
           console.log("🚨 Similar scam/misinfo found in DB:", {
             id: best.message_check_id,
             similarity: best.similarity,
             credibility: best.credibility_score,
+            count: relevant.length,
           });
 
-          // Return early: reuse stored analysis (skip AI)
-          return {
-            credibility_score: best.credibility_score,
-            summary: best.summary,
-            recommendation: best.recommendation,
-            bias_detected: [], // optional: you can store these in DB and return them too
-            key_claims: [],
-            cross_references: [],
-            analysis_id: randomUUID(),
-          } satisfies TAnalysisResponse;
+          dbContext =
+            "Similar prior records from the internal database:\n\n" +
+            relevant
+              .slice(0, 5)
+              .map(
+                (m, i) =>
+                  `Case ${i + 1}:\n` +
+                  `- similarity: ${m.similarity.toFixed(3)}\n` +
+                  `- prior credibility score: ${m.credibility_score ?? "N/A"}\n` +
+                  `- prior summary: ${(m.summary ?? "N/A").slice(0, 200)}\n` +
+                  `- prior recommendation: ${(m.recommendation ?? "N/A").slice(0, 200)}\n` +
+                  `- prior text excerpt: ${m.content_text.slice(0, 240)}`
+              )
+              .join("\n\n");
         }
       }
     } catch (e) {
       console.error("Embedding search failed:", e);
     }
 
+    const finalPrompt =
+      prompt +
+      `\n\nInternal DB context:\n${dbContext}\n\n` +
+      `If the submitted text strongly resembles prior scam or misinformation patterns in the DB, mention that in the summary and recommendation. ` +
+      `Use the DB context as supporting evidence only, not sole proof.`;
+
+
     console.log("🔍 [3/5] Calling AI with web search...");
     const start = Date.now();
 
-    const { text: raw, searchResults } = await callAiWithSearch(prompt, {
+    const { text: raw, searchResults } = await callAiWithSearch(finalPrompt, {
           systemPrompt: SYSTEM_PROMPT,
           responseFormat: {
             type: "json_schema",
