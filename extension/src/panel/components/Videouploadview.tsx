@@ -8,9 +8,10 @@ export function VideoUploadView({ onResult, lang }: { onResult: (r: AnalysisResu
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string>("");
   const [stage, setStage] = useState<"idle" | "uploading" | "analysing">("idle");
   const [transcript, setTranscript] = useState("");
+  const [isExpanded, setIsExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleUpload() {
@@ -47,7 +48,7 @@ export function VideoUploadView({ onResult, lang }: { onResult: (r: AnalysisResu
       onResult(data);
     } catch (err) {
       console.error("Video analysis failed:", err);
-      let msg = t.videoFailed;
+      let msg: string = t.videoFailed;
       if (err instanceof Error) {
         if (err.message.includes("Failed to fetch")) msg = "Cannot connect to backend. Is it running on localhost:3000?";
         else if (err.message.includes("ffmpeg")) msg = "ffmpeg not found. Run: winget install ffmpeg";
@@ -72,8 +73,8 @@ export function VideoUploadView({ onResult, lang }: { onResult: (r: AnalysisResu
   const stageLabel = stage === "uploading"
     ? "Uploading video…"
     : stage === "analysing"
-    ? t.extractingFrames
-    : t.analysingVideo;
+      ? t.extractingFrames
+      : t.analysingVideo;
 
   return (
     <div>
@@ -119,12 +120,27 @@ export function VideoUploadView({ onResult, lang }: { onResult: (r: AnalysisResu
         <div style={{
           background: "#13132a", border: "1px solid #3a3a5e",
           borderRadius: 8, overflow: "hidden", marginBottom: 12,
+          position: "relative" // Added for positioning expand button
         }}>
           <video
             src={previewUrl}
             controls
             style={{ width: "100%", maxHeight: 160, display: "block", background: "#000" }}
           />
+
+          {/* Expand Button */}
+          <button
+            onClick={() => setIsExpanded(true)}
+            style={{
+              position: "absolute", top: 8, right: 8,
+              background: "rgba(0,0,0,0.6)", color: "#fff",
+              border: "none", borderRadius: 4, padding: "4px 8px",
+              fontSize: 10, cursor: "pointer"
+            }}
+          >
+            ⛶
+          </button>
+
           <div style={{
             padding: "8px 12px", display: "flex",
             justifyContent: "space-between", alignItems: "center",
@@ -148,6 +164,32 @@ export function VideoUploadView({ onResult, lang }: { onResult: (r: AnalysisResu
               Remove
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Full Screen Modal Overlay */}
+      {isExpanded && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
+          background: "rgba(0,0,0,0.9)", zIndex: 9999,
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center"
+        }}>
+          <button
+            onClick={() => setIsExpanded(false)}
+            style={{
+              position: "absolute", top: 20, right: 20,
+              background: "#fff", border: "none", borderRadius: "50%",
+              width: 32, height: 32, cursor: "pointer", fontWeight: "bold"
+            }}
+          >
+            ✕
+          </button>
+          <video
+            src={previewUrl!}
+            controls
+            autoPlay
+            style={{ maxWidth: "90%", maxHeight: "80%" }}
+          />
         </div>
       )}
 
