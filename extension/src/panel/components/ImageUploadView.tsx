@@ -46,6 +46,7 @@ export function ImageUploadView({ onResult, lang }: { onResult: (r: AnalysisResu
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           images: imagesb64,
+          preferred_language: lang,
         }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

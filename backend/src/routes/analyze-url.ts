@@ -13,17 +13,13 @@ function normalizeClassification(value: unknown): "legitimate" | "misleading" | 
   if (text.includes("legit") || text.includes("reliable") || text.includes("safe") || text.includes("informational")) return "legitimate";
   return "unverified";
 }
-import { postMessageCheck } from "../../functions/postMessageCheck";
 
-function normalizeClassification(value: unknown): "legitimate" | "misleading" | "scam" | "suspicious" | "unverified" {
-  const text = String(value ?? "").toLowerCase();
-
-  if (text.includes("scam") || text.includes("fraud") || text.includes("phish")) return "scam";
-  if (text.includes("mislead") || text.includes("false") || text.includes("fake") || text.includes("hoax")) return "misleading";
-  if (text.includes("suspic") || text.includes("dubious") || text.includes("questionable")) return "suspicious";
-  if (text.includes("legit") || text.includes("reliable") || text.includes("safe") || text.includes("informational")) return "legitimate";
-  return "unverified";
-}
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: "English",
+  zh: "Simplified Chinese (中文)",
+  ms: "Malay (Bahasa Melayu)",
+  ta: "Tamil (தமிழ்)",
+};
 
 const SYSTEM_PROMPT =
   "You are a credibility and scam-detection assistant specialised in Singapore cybercrime patterns. " +
@@ -35,16 +31,13 @@ const SYSTEM_PROMPT =
   "Use ONLY these enum values exactly as written:\n" +
   "  • cross_references[].contradiction_level: 'low' | 'medium' | 'high'\n" +
   "For each cross_references entry, set url to the exact URL returned by exa_search.";
-  "then return your structured analysis.\n\n" +
-  "Use ONLY these enum values exactly as written:\n" +
-  "  • cross_references[].contradiction_level: 'low' | 'medium' | 'high'\n" +
-  "For each cross_references entry, set url to the exact URL returned by exa_search.";
 
 export const analyzeUrlRoute = new Elysia().post(
   "/analyze/url",
   async ({ body }) => {
-    console.log("analyze url called");
-    console.log(body);
+    const LangChosen = LANGUAGE_NAMES[body.preferred_language ?? "en"] ?? "English";
+
+    console.log("analyze url called", { url: body.url, language: LangChosen });
 
     const jinaRes = await fetch(`https://r.jina.ai/${body.url}`, {
       headers: { Accept: "text/markdown" },
@@ -53,9 +46,9 @@ export const analyzeUrlRoute = new Elysia().post(
     console.log(pageMarkdown);
 
     const prompt =
+      `IMPORTANT: Write ALL text fields (summary, recommendation, key_claims, bias_detected) ` +
+      `in ${LangChosen}. Do not use English unless ${LangChosen} is English.\n\n` +
       `URL: ${body.url}\n\n` +
-      `cross_references[].contradiction_level must be exactly one of: "low", "medium", "high". Never use "none".\n` +
-      `For each cross_references entry, set url to the exact URL returned by exa_search.\n\n` +
       `cross_references[].contradiction_level must be exactly one of: "low", "medium", "high". Never use "none".\n` +
       `For each cross_references entry, set url to the exact URL returned by exa_search.\n\n` +
       `Page content:\n\n${pageMarkdown.slice(0, 12000)}`; // cap to ~12k chars

@@ -15,6 +15,13 @@ function normalizeClassification(
   return "unverified";
 }
 
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: "English",
+  zh: "Simplified Chinese (中文)",
+  ms: "Malay (Bahasa Melayu)",
+  ta: "Tamil (தமிழ்)",
+};
+
 const SYSTEM_PROMPT =
   "You are a fact-checking assistant specialised in detecting misinformation, scams, and manipulated media. " +
   "Analyse the provided image(s) for claims, statistics, quotes, and assertions. " +
@@ -28,9 +35,12 @@ const SYSTEM_PROMPT =
 export const imageRoute = new Elysia().post(
   "/image",
   async ({ body }) => {
-    console.log("image route called, images:", body.images.length);
+    const LangChosen = LANGUAGE_NAMES[body.preferred_language ?? "en"] ?? "English";
+    console.log("image route called, images:", body.images.length, "language:", LangChosen);
 
     const prompt =
+      `IMPORTANT: Write ALL text fields (summary, recommendation, key_claims, bias_detected) ` +
+      `in ${LangChosen}. Do not use English unless ${LangChosen} is English.\n\n` +
       `Analyse the image(s) above for misinformation, scam signals, and factual accuracy. ` +
       `Identify every claim, statistic, name, date, or assertion visible. ` +
       `Use exa_search to cross-reference them, then explain any discrepancies. ` +
