@@ -45,7 +45,7 @@ export const imageRoute = new Elysia().post(
         json_schema: {
           name: "analysis",
           strict: true,
-          schema: JSON.parse(JSON.stringify(AnalysisAiOutputSchema)),
+          schema: AnalysisAiOutputSchema,
         },
       },
     });
